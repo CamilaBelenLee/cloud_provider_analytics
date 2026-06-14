@@ -1,1 +1,21 @@
-/CLAUDE.md
+secure-connect-*.zip
+*.zip
+*token*
+.env
+.astra/
+
+# --- Generated data-lake zones (rebuilt by running the notebook) ---
+datalake/bronze/
+datalake/silver/
+datalake/gold/
+datalake/quarantine/
+checkpoints/
+
+# --- Python / notebook noise ---
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.DS_Store
+spark-warehouse/
+
+CLAUDE.md

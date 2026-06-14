@@ -1,62 +1,76 @@
 # Cloud Provider Analytics — Big Data 72.80 (ITBA, 1C 2026)
 
-Lambda-architecture analytics pipeline for a cloud provider: ingest, clean, conform, and publish customer data for **FinOps**, **Support**, and **Product/GenAI**, using **PySpark** + **Structured Streaming** on Colab, **Parquet** as the intermediate store, and **Cassandra (AstraDB)** as the query-first serving layer.
+Pipeline analítico con **arquitectura Lambda** para un proveedor de nube: ingestar, limpiar, conformar y publicar datos para **FinOps**, **Soporte** y **Producto/GenAI**, usando **PySpark** + **Structured Streaming** en Colab, **Parquet** como almacenamiento intermedio y **Cassandra (AstraDB)** como capa de serving *query-first*.
 
-**Team:** Camila Lee (63382) · Lucas Perri (62746)
+**Integrantes:** Camila Lee (63382), Lucas Perri (62746)
 
-## Run it
+## Quickstart
 
-The whole MVP runs from `notebooks/cloud_provider_analytics_mvp.ipynb` in Google Colab, top to bottom. Setup (AstraDB Secure Connect Bundle + token, keyspace `cloud_analytics`) is documented in the notebook's first markdown cell. Edit `SCB_PATH`, `ASTRA_TOKEN`, `KEYSPACE` in the serving cell, then Run all.
+1. Abrir `notebooks/cloud_provider_analytics_mvp.ipynb` en Google Colab.
+2. Subir el dataset para tener `/content/datalake/landing/` con los 7 CSV y `usage_events_stream/*.jsonl`.
+3. En AstraDB: crear una base **Serverless (Non-Vector)** y el keyspace **`cloud_analytics`**; generar un **application token** (`AstraCS:...`) y descargar el **Secure Connect Bundle** (zip). Subir el zip a `/content/`.
+4. Cargá las credenciales: copiar `.env.example` a `.env` y completarlo, **o** cargar `SCB_PATH`, `ASTRA_TOKEN`, `ASTRA_KEYSPACE` en **Colab Secrets**.
+5. *Entorno de ejecución → Ejecutar todo.* El notebook corre `Landing → Bronze → Silver → Gold → Cassandra`, ejecuta Q1 y Q2, y muestra la prueba de idempotencia.
 
 ```
 cloud-provider-analytics/
 ├── README.md
-├── notebooks/cloud_provider_analytics_mvp.ipynb   # the deliverable
-├── cql/schema.cql                                  # table DDL
-├── datalake/landing/                               # provided CSV + usage_events_stream/*.jsonl
-└── docs/decision_log.md                            # Lambda, partitions, keys, thresholds, FX
+├── requirements.txt
+├── .env.example                       # plantilla de credenciales (copiar a .env)
+├── .gitignore                         # excluye zonas generadas + .env + el SCB
+├── notebooks/
+│   └── cloud_provider_analytics_mvp.ipynb
+├── cql/
+│   └── schema.cql
+├── docs/
+│   ├── architecture.svg               # diagrama actualizado
+│   ├── decision_log.md                # log de decisiones
+│   └── evidence/                      # capturas (CQL+resultado, conteos, tamaños)
+└── datalake/
+    └── landing/                       # datos provistos (se versionan)
+    #   bronze/ silver/ gold/ quarantine/ se GENERAN al correr (no se versionan)
 ```
 
-## Architecture
+## Arquitectura
 
-**Lambda**, organized over medallion zones in a Data Lake.
+**Lambda**, organizada sobre zonas medallion en un Data Lake.
 
-- **Batch layer** — the 7 CSV masters/billing/surveys (states, human/period cadence).
-- **Speed layer** — `usage_events_stream/*.jsonl` via Structured Streaming (events; watermark, dedup by `event_id`, checkpoint).
-- **Serving layer** — query-first **CQL tables** in AstraDB; one table per business question.
+- **Capa batch** — los 7 CSV de maestros/facturación/encuestas (estados, cadencia humana/de período).
+- **Capa de velocidad (speed)** — `usage_events_stream/*.jsonl` vía Structured Streaming (eventos; watermark, dedupe por `event_id`, checkpoint). Incluye la variante con `foreachBatch` que agrega por ventana diaria y escribe a Cassandra.
+- **Capa de serving** — tablas **CQL** en AstraDB; una tabla por consulta de negocio.
 
-### Data Lake zones
-- **Landing** — original files, immutable.
-- **Bronze** — typed Parquet, deduped, `ingest_ts` + `source_file`, partitioned.
-- **Silver** — cleaned, conformed, enriched (broadcast joins to dimensions), 3 quality rules + quarantine, per-service anomaly flag.
-- **Gold** — business marts, aggregated, rounded at the serving boundary.
+### Zonas del Data Lake
+- **Landing** — archivos originales, inmutables.
+- **Bronze** — Parquet tipado, deduplicado, `ingest_ts` + `source_file`, particionado.
+- **Silver** — limpieza, conformance, enriquecimiento (joins broadcast), 3 reglas de calidad + quarantine, flag de anomalía por servicio.
+- **Gold** — marts de negocio, agregados, redondeados en el borde de serving.
 
-## The data (real schema notes)
+## El dato (notas del esquema real)
 
-- **Events** carry `timestamp` (not `event_time`), and a `metric` field (`requests` | `cpu_hours` | `storage_gb_hours`) that governs `value`. `value` arrives as number, string `"100.0"`, or null → read as **string**, cast with fallback. `carbon_kg`/`genai_tokens` are **v2-only** (after 2025-07-18) → nullable union schema.
-- **Billing** carries `exchange_rate_to_usd` (FX source), `credits` often blank (→ 0), `subtotal` occasionally negative.
-- **Masters** join on `org_id`; org region is `hq_region` (events have their own `region`).
+- Los **eventos** traen `timestamp` (no `event_time`) y un campo `metric` (`requests` | `cpu_hours` | `storage_gb_hours`) que define qué mide `value`. `value` llega como número, como `"100.0"` o nulo → se lee **string** y se castea con fallback. `carbon_kg`/`genai_tokens` son **sólo v2** (después del 2025-07-18) → esquema unión nullable.
+- **Facturación** trae `exchange_rate_to_usd` (fuente de FX), `credits` muchas veces vacío (→ 0), `subtotal` ocasionalmente negativo.
+- Los **maestros** se unen por `org_id`; la región de la org es `hq_region` (los eventos tienen su propio `region`).
 
-## Data quality
+## Calidad de datos
 
-Three rules on events: `event_id` not null; `cost_usd_increment ≥ -0.01`; `unit` not null when `value` present. Failing rows → **quarantine** Parquet (inspected, not dropped). Streaming dedup (watermark window) is backed by a final batch `dropDuplicates(["event_id"])` for global uniqueness.
+Tres reglas sobre eventos: `event_id` no nulo; `cost_usd_increment ≥ -0.01`; `unit` no nulo cuando `value` existe. Las filas que fallan van a **quarantine** (se inspeccionan, no se descartan). La dedupe en streaming (ventana del watermark) se respalda con un `dropDuplicates(["event_id"])` por lotes para unicidad global.
 
-## Anomaly detection
+## Detección de anomalías
 
-Per-service **z-score**, **MAD**, and **p99**; a row is flagged only when **≥2 of 3** agree (consensus → fewer false positives). Anomalies are **flagged, not removed or clamped** — they're real, high-value cost spikes (the FinOps signal), surfaced rather than hidden.
+**z-score**, **MAD** y **p99** por servicio; se marca anomalía sólo cuando **coinciden ≥2 de 3** (consenso → menos falsos positivos). Las anomalías se **marcan, no se eliminan ni recortan** — son los picos de costo reales (la señal de FinOps), que se exponen en lugar de ocultarse.
 
-## Serving — why CQL tables, not Document collections
+## Serving — por qué tablas CQL y no colecciones del Document API
 
-The consigna requires Cassandra query-first modeling with partition/clustering keys. We model **real CQL tables** (e.g. `org_daily_usage_by_service` with `PRIMARY KEY ((org_id, service), usage_date)`) via the DataStax driver + Secure Connect Bundle, loaded with prepared **UPSERTs** (idempotent). We deliberately do **not** use the Document API (schemaless collections), which would discard the partition-key modeling the project is graded on. See `docs/decision_log.md`.
+La consigna pide modelado *query-first* en Cassandra con clave de partición/clustering. Modelamos **tablas CQL reales** (`org_daily_usage_by_service` con `PRIMARY KEY ((org_id, service), usage_date)`) vía el driver de DataStax + Secure Connect Bundle, cargadas con **UPSERTs** preparados (idempotentes). Deliberadamente **no** usamos el Document API (colecciones schemaless), que descartaría el modelado por clave de partición que el proyecto evalúa. Ver `docs/decision_log.md`.
 
-## MVP scope (Segundo Parcial)
+## Alcance del MVP (Segundo Parcial)
 
-Batch→Bronze (3 masters) · Streaming→Bronze (events) · Silver (rules + quarantine + features + anomalies) · Gold FinOps mart · 1 CQL table · Q1 + Q2 · idempotency proof. The remaining marts (revenue, tickets, GenAI, cost-anomaly) and queries Q3–Q5 are the next step toward the final entrega.
+Batch→Bronze (3 maestros) · Streaming→Bronze (eventos) · Silver (reglas + quarantine + features + anomalías) · mart FinOps en Gold · 1 tabla CQL · Q1 + Q2 · prueba de idempotencia · Speed Layer con `foreachBatch`. Los marts restantes (revenue, tickets, GenAI, cost-anomaly) y las consultas Q3–Q5 son el siguiente paso hacia la entrega final.
 
-## Assumptions & risks
+## Asunciones y riesgos
 
-Dataset fits Colab (~60 days events; if it grows, the same Spark code scales to a cluster unchanged). JSONL arrives in minute-scale micro-batches → near-real-time SLA, not strict sub-second. Colab `/content` is ephemeral → mount Drive to persist Parquet/checkpoints across sessions. Late data bounded by a 10-minute watermark. FX taken from `exchange_rate_to_usd`.
+El dataset entra en Colab (~60 días de eventos; si crece, el mismo código Spark escala a un cluster sin cambios). El JSONL llega en micro-lotes de minutos → SLA near real-time, no sub-segundo estricto. `/content` es efímero → montar Drive para persistir Parquet/checkpoints. Late data acotada por watermark de 10 minutos. FX tomado de `exchange_rate_to_usd`.
 
-## Limitations
+## Limitaciones
 
-File-based streaming (not Kafka); single keyspace; Q2 top-N is a computed value so it's served by scanning the org's partitions and aggregating app-side (a dedicated `top_services_by_org` mart is the production alternative).
+Streaming basado en archivos (no Kafka); un único keyspace; el top-N de Q2 es un valor calculado, así que se sirve escaneando las particiones de la org y agregando del lado de la app (la alternativa de producción es un mart dedicado `top_services_by_org`).
