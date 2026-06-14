@@ -77,7 +77,7 @@ La tabla incluye una columna de **tipo colección** de CQL: `anomaly_methods set
 
 ## Evidencia (`docs/evidence/`)
 
-La carpeta `docs/evidence/` guarda la salida textual de la celda "Reporte de evidencia" del notebook, partida en un archivo por criterio de aceptación. Existe para que el evaluador pueda verificar los resultados **sin re-ejecutar** el notebook ni tener acceso a AstraDB.
+La carpeta `docs/evidence/` guarda la salida textual de la celda "Reporte de evidencia" del notebook, partida en un archivo por criterio de aceptación. Existe para que se puedan verificar los resultados **sin re-ejecutar** el notebook ni tener acceso a AstraDB.
 
 | Archivo | Qué demuestra |
 |---|---|
