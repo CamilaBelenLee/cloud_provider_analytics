@@ -17,13 +17,13 @@ Usamos tablas CQL, no el Document API de Astra, para poder definir la partition 
 
 `usage_date DESC` (no ASC) porque las consultas miran lo más reciente primero, y Cassandra lee secuencial dentro de la partición — tener lo nuevo arriba evita recorrer toda la partición.
 
-Tamaño de partición: 80 orgs × 6 servicios = 480 particiones posibles, ~23 filas cada una (11050/480). Son particiones chiquitas, lo cual está perfecto para Cassandra (el problema serían particiones gigantes, no chicas).
+Tamaño de partición: 80 orgs × 6 servicios = 480 particiones posibles, ~23 filas cada una (11050/480). Son particiones chicas, lo cual consideramos suficiente para Cassandra (el problema serían particiones gigantes).
 
 ## 5. Features de `metric`
-`requests`, `cpu_hours`, etc. salen de `sum(value WHERE metric=X)`, no de `count(*)`. Contar filas etiquetaría "cantidad de eventos" como "requests", que es otra cosa. (Bug real que evitamos.)
+`requests`, `cpu_hours`, etc. salen de `sum(value WHERE metric=X)`, no de `count(*)`.
 
 ## 6. `value` como string
-`value` viene como número, como `"100.0"` o nulo. Si lo declarábamos `double`, Spark anulaba las filas string al parsear. Lo leemos string y casteamos a `value_num` nosotros, guardando el crudo para la evidencia de quarantine.
+`value` viene como número, como `"100.0"` o nulo. Si lo declarábamos `double`, Spark anulaba las filas string al parsear. Lo leemos como string y casteamos a `value_num`, guardando el dato crudo para la evidencia de quarantine.
 
 ## 7. Anomalías
 z-score solo marca mucho por la cola de outliers, p99 es medio bruto, MAD aguanta mejor. Por eso marcamos sólo cuando coinciden **2 de 3** — con eso bajamos de ~211 a ~89. Los estadísticos van por servicio (los costos no están en la misma escala). `K=1.5` sobre p99 es el único número que elegimos a mano; el resto (3σ, 1.4826 del MAD) son estándar. Guardamos qué métodos dispararon en `anomaly_methods`.
@@ -32,7 +32,7 @@ z-score solo marca mucho por la cola de outliers, p99 es medio bruto, MAD aguant
 Elegimos 10 minutos porque la granularidad del `timestamp` es de minutos y los archivos simulan lotes de ~5 min, así que 10 da margen para que llegue un lote tarde sin descartarlo. Es un valor de demo (los JSONL son estáticos, no hay latencia real que medir); con un feed productivo se ajustaría midiendo cuánto llega tarde de verdad.
 
 ## 9. Trigger `availableNow`
-La fuente es una carpeta fija de archivos. `availableNow` procesa todo y termina, así la corrida es reproducible y no deja un stream colgado. Con un feed vivo se cambiaría a `processingTime` y nada más del código cambia.
+La fuente es una carpeta fija de archivos. `availableNow` procesa todo y termina, así la corrida es reproducible y no deja un stream colgado. Con un feed en vivo se cambiaría a `processingTime`.
 
 ## 10. Idempotencia
 Archivos replayables + checkpoint en el stream + UPSERT por clave natural. Re-ejecutar no cambia el conteo (se prueba en el notebook con antes/después).
@@ -41,10 +41,10 @@ Archivos replayables + checkpoint en el stream + UPSERT por clave natural. Re-ej
 `append` en la ingesta (no agrega nada). `update` en la Speed Layer porque la agregación diaria se actualiza con cada micro-batch, y el UPSERT de Cassandra pisa por clave.
 
 ## 12. Conformance
-Miramos `service`, `region` y `metric` con un `distinct().show()` en el perfilado: vienen consistentes (`compute`, `us-east`, `requests`…), sin variantes de casing ni espacios. Por eso no agregamos `upper/trim` — sería transformar algo que ya está limpio. Si apareciera ruido de casing, iría en Silver.
+Miramos `service`, `region` y `metric` con un `distinct().show()` en el perfilado: vienen consistentes (`compute`, `us-east`, `requests`…), sin variantes de casing ni espacios. Por eso no agregamos `upper/trim` — no hay necesidad de transformar algo que ya está limpio. Si apareciera ruido de casing, iría en Silver.
 
 ## 13. Nulos
-Nulos de `unit` con `value` presente → quarantine (~2038). El resto (value nulo, nps nulo, csat nulo) los dejamos como NULL — no tiene sentido inventar un valor. Las features numéricas se llevan a 0 sólo en Gold, donde 0 = "sin actividad ese día".
+Nulos de `unit` con `value` presente → quarantine (~2038). El resto (value nulo, nps nulo, csat nulo) los dejamos como NULL (no tiene sentido inventar un valor). Las features numéricas se llevan a 0 sólo en Gold, donde 0 = "sin actividad ese día".
 
 ## 14. SCD
 No aplica: los maestros son un único snapshot, no hay historial de cambios que guardar. Si en algún momento se entregaran como serie temporal, ahí sí entraría un SCD Type 2.
@@ -59,7 +59,7 @@ Hay un `nps_score=101` (fuera de rango) en orgs. No nos afecta: usamos orgs sól
 La dedupe del stream sólo cubre la ventana del watermark (10 min). Como los eventos abarcan ~60 días, agregamos un `dropDuplicates(["event_id"])` por lotes en Silver para unicidad global. El dataset igual no trae duplicados (43.200 event_id únicos), así que esto garantiza la propiedad más que eliminar filas.
 
 ## 18. Listar servicios en Q2
-Q2 necesita saber qué servicios tiene una org. No lo hardcodeamos (un servicio nuevo quedaría afuera sin avisar) ni queremos escanear toda la tabla (gatilla un warning de Cassandra y no escala). Materializamos una tabla índice `services_by_org` con PK `((org_id), service)`: Q2 lee los servicios de una org en **una sola partición**, sin scan y siempre actualizada. Se puebla en la misma carga.
+Q2 necesita saber qué servicios tiene una org. No lo hardcodeamos (un servicio nuevo quedaría afuera sin avisar) ni queremos escanear toda la tabla (triggerea un warning de Cassandra y no escala). Materializamos una tabla índice `services_by_org` con PK `((org_id), service)`: Q2 lee los servicios de una org en **una sola partición**, sin scan y siempre actualizada. Se puebla en la misma carga.
 
 ## 19. Tipo colección en Cassandra → `anomaly_methods set<text>`
 La tabla usa una columna de tipo colección: `anomaly_methods set<text>`. Guarda qué métodos marcaron anomalía ese día (p. ej. `{'zscore','mad'}`). Un `set` encaja porque es un conjunto sin orden ni repetidos, y el dato ya lo calculamos en Silver. Lo agregamos al `CREATE TABLE`, al `INSERT` y a la agregación de Gold (`collect_set` + `flatten`).
