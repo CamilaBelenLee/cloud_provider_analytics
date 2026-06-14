@@ -15,7 +15,7 @@ Pipeline analítico con **arquitectura Lambda** para un proveedor de nube: inges
 5. *Entorno de ejecución → Ejecutar todo.* El notebook corre `Landing → Bronze → Silver → Gold → Cassandra`, ejecuta Q1 y Q2, y muestra la prueba de idempotencia.
 
 ```
-cloud-provider-analytics/
+cloud_provider_analytics/
 ├── README.md
 ├── requirements.txt
 ├── .env.example                       # plantilla de credenciales (copiar a .env)
@@ -25,7 +25,7 @@ cloud-provider-analytics/
 ├── cql/
 │   └── schema.cql
 ├── docs/
-│   ├── arquitecture.png               # diagrama de arquitectura
+│   ├── architecture.svg               # diagrama de arquitectura
 │   ├── data_dictionary.md             # diccionario de datos (campos, tipos, dominio)
 │   ├── decision_log.md                # log de decisiones
 │   └── evidence/                      # salida textual de cada criterio de aceptación
@@ -47,12 +47,12 @@ cloud-provider-analytics/
 
 - **Capa batch** — los 7 CSV de maestros/facturación/encuestas (estados, cadencia humana/de período).
 - **Capa de velocidad (speed)** — `usage_events_stream/*.jsonl` vía Structured Streaming (eventos; watermark, dedupe por `event_id`, checkpoint). Incluye la variante con `foreachBatch` que agrega por ventana diaria y escribe a Cassandra.
-- **Capa de serving** — tablas **CQL** en AstraDB; una tabla por consulta de negocio.
+- **Capa de serving** — tablas **CQL** en AstraDB. Son tres: el mart FinOps (`org_daily_usage_by_service`), la tabla del stream (`org_daily_usage_stream`) y un índice para Q2 (`services_by_org`).
 
 ### Zonas del Data Lake
 - **Landing** — archivos originales, inmutables.
 - **Bronze** — Parquet tipado y deduplicado, con `ingest_ts` + `source_file` de procedencia. Mismo grano que la fuente; particionado.
-- **Silver** — limpieza, 3 reglas de calidad con quarantine, enriquecimiento por broadcast join con las dimensiones, y el flag de anomalía por servicio (z-score/MAD/p99, marca is >= 2 coinciden).
+- **Silver** — limpieza, 3 reglas de calidad con quarantine, enriquecimiento por broadcast join con las dimensiones, y el flag de anomalía por servicio (z-score/MAD/p99, marca si ≥2 coinciden).
 - **Gold** — marts listos para servir.
 
 ## Datos (notas del esquema real)
@@ -73,7 +73,7 @@ Tres reglas sobre eventos: `event_id` no nulo; `cost_usd_increment ≥ -0.01`; `
 
 Usamos tablas CQL, no el Document API de Astra, porque así podemos definir la partition key — que es lo que la consigna evalúa (modelado query-first). La tabla `org_daily_usage_by_service` tiene `PRIMARY KEY ((org_id, service), usage_date)` y se carga con UPSERTs preparados desde Spark (idempotentes).
 
-La tabla incluye una columna de **tipo colección** de CQL: `anomaly_methods set<text>`, que guarda qué métodos (zscore/mad/p99) marcaron anomalía ese día. Ver `docs/decision_log.md`.
+La tabla incluye una columna de **tipo colección** de CQL: `anomaly_methods set<text>`, que guarda qué métodos (zscore/mad/p99) marcaron anomalía ese día. La Speed Layer escribe a una tabla separada (`org_daily_usage_stream`) para no pisar el mart del batch, y un índice chico (`services_by_org`) resuelve Q2 sin escanear la tabla grande. Ver `docs/decision_log.md`.
 
 ## Evidencia (`docs/evidence/`)
 
@@ -82,16 +82,16 @@ La carpeta `docs/evidence/` guarda la salida textual de la celda "Reporte de evi
 | Archivo | Qué demuestra |
 |---|---|
 | `c1.txt` | Que los 3 maestros y los eventos se ingestan a Bronze con los conteos correctos (80 orgs, 800 users, 240 billing, 43200 eventos). |
-| `c2.txt` | Que las 3 reglas de calidad funcionan: 40956 filas válidas, 2244 en quarantine, con ejemplos concretos de filas rechazadas (unit=NULL con value presente). |
-| `c3.txt` | Que el mart Gold tiene 11050 filas y coincide con lo cargado en Cassandra. Muestra las filas de mayor costo (todas marcadas como anomalía por los 3 métodos). |
+| `c2.txt` | Que las 3 reglas de calidad funcionan: filas válidas vs. quarantine, con ejemplos concretos de filas rechazadas (unit=NULL con value presente). |
+| `c3.txt` | Que el mart Gold coincide con lo cargado en Cassandra. Muestra las filas de mayor costo (marcadas como anomalía). |
 | `c4.txt` | Q1 ejecutada contra AstraDB: CQL con la query exacta y el resultado (costo+requests diarios por org+servicio en un rango). |
 | `c5.txt` | Q2 ejecutada contra AstraDB: top servicios por costo acumulado en los últimos 14 días para una org. |
-| `c6.txt` | Idempotencia: conteo antes y después de re-cargar = 11050 en ambos casos. El UPSERT no duplica. |
+| `c6.txt` | Idempotencia: conteo antes y después de re-cargar = igual. El UPSERT no duplica. |
 | `c7.txt` | Rutas físicas de cada zona con tamaños (`du -sh`) y carpetas de partición (`usage_date=...`), demostrando que el Parquet está particionado. |
 
 ## Alcance del MVP (Segundo Parcial)
 
-Batch→Bronze (3 maestros) · Streaming→Bronze (eventos) · Silver (reglas + quarantine + features + anomalías) · mart FinOps en Gold · 1 tabla CQL · Q1 + Q2 · prueba de idempotencia · Speed Layer con `foreachBatch`. Los marts restantes (revenue, tickets, GenAI, cost-anomaly) y las consultas Q3–Q5 son el siguiente paso hacia la entrega final.
+Batch→Bronze (3 maestros) · Streaming→Bronze (eventos) · Silver (reglas + quarantine + features + anomalías) · mart FinOps en Gold · tablas CQL (mart FinOps + tabla del stream + índice para Q2) · Q1 + Q2 · prueba de idempotencia · Speed Layer con `foreachBatch`. Los marts restantes (revenue, tickets, GenAI, cost-anomaly) y las consultas Q3–Q5 son el siguiente paso hacia la entrega final.
 
 ## Asunciones y riesgos
 
@@ -99,4 +99,4 @@ El dataset entra en Colab (~60 días de eventos; si crece, el mismo código Spar
 
 ## Limitaciones
 
-Streaming basado en archivos (no Kafka); un único keyspace; el top-N de Q2 es un valor calculado, así que se sirve escaneando las particiones de la org y agregando del lado de la app (la alternativa de producción es un mart dedicado `top_services_by_org`).
+Streaming basado en archivos (no Kafka); un único keyspace. El top-N de Q2 se calcula sobre varias particiones: los servicios de la org salen del índice `services_by_org` (una partición, sin scan), se lee el costo de cada uno y el top-N se ordena del lado de la app. Un mart dedicado que sirva el ranking ya calculado sería la evolución para la entrega final. La Speed Layer, con `availableNow` sobre la misma fuente que el batch, es una demostración del patrón `foreachBatch`, no una capa de velocidad en paralelo (en Lambda real correría con `processingTime` y la serving mergearía batch + speed).
