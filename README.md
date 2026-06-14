@@ -2,16 +2,16 @@
 
 Pipeline analítico con **arquitectura Lambda** para un proveedor de nube: ingestar, limpiar, conformar y publicar datos para **FinOps**, **Soporte** y **Producto/GenAI**, usando **PySpark** + **Structured Streaming** en Colab, **Parquet** como almacenamiento intermedio y **Cassandra (AstraDB)** como capa de serving *query-first*.
 
-**Integrantes:** Camila Lee (63382), Lucas Perri (62746)
+**Integrantes:** Camila Lee (63382) · Lucas Perri (62746)
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/CamilaBelenLee/cloud_provider_analytics/blob/main/notebooks/cloud_provider_analytics_mvp.ipynb)
 
-## Quickstart
+## Quickstart (pasos exactos)
 
-1. Abrir `notebooks/cloud_provider_analytics_mvp.ipynb` en Google Colab.
+1. Abrir el notebook en Colab con la insignia de arriba (o *Archivo → Abrir notebook → GitHub* y pegá la URL del repo).
 2. **Datos:** correr la celda opcional *0b* (clona el repo y copia `datalake/landing/` a `/content/`), **o** subir el dataset a mano para tener `/content/datalake/landing/` con los 7 CSV y `usage_events_stream/*.jsonl`.
-3. En AstraDB: crear una base **Serverless (Non-Vector)** y el keyspace **`cloud_analytics`**; generar un **application token** (`AstraCS:...`) y descargar el **Secure Connect Bundle** (zip). Subir el zip a `/content/`.
-4. Cargá las credenciales: copiar `.env.example` a `.env` y completarlo, **o** cargar `SCB_PATH`, `ASTRA_TOKEN`, `ASTRA_KEYSPACE` en **Colab Secrets**.
+3. En AstraDB: crer una base **Serverless (Non-Vector)** y el keyspace **`cloud_analytics`**; generar un **application token** (`AstraCS:...`) y descargar el **Secure Connect Bundle** (zip). Subir el zip a `/content/`.
+4. Cargá las credenciales **sin hardcodear**: copiar `.env.example` a `.env` y completarlo, **o** cargar `SCB_PATH`, `ASTRA_TOKEN`, `ASTRA_KEYSPACE` en **Colab Secrets**.
 5. *Entorno de ejecución → Ejecutar todo.* El notebook corre `Landing → Bronze → Silver → Gold → Cassandra`, ejecuta Q1 y Q2, y muestra la prueba de idempotencia.
 
 ```
@@ -25,9 +25,9 @@ cloud-provider-analytics/
 ├── cql/
 │   └── schema.cql
 ├── docs/
-│   ├── architecture.svg               # diagrama actualizado
+│   ├── architecture.png               # diagrama actualizado del MVP actual
 │   ├── decision_log.md                # log de decisiones
-│   └── evidence/                      # capturas (CQL+resultado, conteos, tamaños)
+│   └── evidence/                      # archivos (CQL+resultado, conteos, tamaños)
 └── datalake/
     └── landing/                       # datos provistos (se versionan)
     #   bronze/ silver/ gold/ quarantine/ se GENERAN al correr (no se versionan)
@@ -61,9 +61,11 @@ Tres reglas sobre eventos: `event_id` no nulo; `cost_usd_increment ≥ -0.01`; `
 
 **z-score**, **MAD** y **p99** por servicio; se marca anomalía sólo cuando **coinciden ≥2 de 3** (consenso → menos falsos positivos). Las anomalías se **marcan, no se eliminan ni recortan** — son los picos de costo reales (la señal de FinOps), que se exponen en lugar de ocultarse.
 
-## Serving — por qué tablas CQL y no colecciones del Document API
+## Serving — tablas CQL (con una columna colección)
 
-La consigna pide modelado *query-first* en Cassandra con clave de partición/clustering. Modelamos **tablas CQL reales** (`org_daily_usage_by_service` con `PRIMARY KEY ((org_id, service), usage_date)`) vía el driver de DataStax + Secure Connect Bundle, cargadas con **UPSERTs** preparados (idempotentes). Deliberadamente **no** usamos el Document API (colecciones schemaless), que descartaría el modelado por clave de partición que el proyecto evalúa. Ver `docs/decision_log.md`.
+Usamos tablas CQL, no el Document API de Astra, porque así podemos definir la partition key — que es lo que la consigna evalúa (modelado query-first). La tabla `org_daily_usage_by_service` tiene `PRIMARY KEY ((org_id, service), usage_date)` y se carga con UPSERTs preparados desde Spark (idempotentes).
+
+La tabla incluye una columna de **tipo colección** de CQL: `anomaly_methods set<text>`, que guarda qué métodos (zscore/mad/p99) marcaron anomalía ese día. Ver `docs/decision_log.md`.
 
 ## Alcance del MVP (Segundo Parcial)
 

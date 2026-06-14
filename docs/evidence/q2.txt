@@ -1,0 +1,13 @@
+==================================================================
+Consulta Q2 sobre AstraDB (CQL + resultado)
+==================================================================
+-- Q2 (CQL, por servicio de la org · ventana 14 días · org=org_rixa11dp)
+SELECT daily_cost_usd FROM cloud_analytics.org_daily_usage_by_service
+WHERE org_id='org_rixa11dp' AND service=? AND usage_date>='2025-08-17' AND usage_date<='2025-08-31';
+
+WARNING:cassandra.protocol:Server warning: Aggregation query used without partition key
+  service  cost_14d
+    genai    661.97
+analytics    119.14
+  compute    112.08
+ database     67.41
