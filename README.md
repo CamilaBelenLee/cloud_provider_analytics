@@ -4,10 +4,12 @@ Pipeline analítico con **arquitectura Lambda** para un proveedor de nube: inges
 
 **Integrantes:** Camila Lee (63382), Lucas Perri (62746)
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/CamilaBelenLee/cloud_provider_analytics/blob/main/notebooks/cloud_provider_analytics_mvp.ipynb)
+
 ## Quickstart
 
 1. Abrir `notebooks/cloud_provider_analytics_mvp.ipynb` en Google Colab.
-2. Subir el dataset para tener `/content/datalake/landing/` con los 7 CSV y `usage_events_stream/*.jsonl`.
+2. **Datos:** correr la celda opcional *0b* (clona el repo y copia `datalake/landing/` a `/content/`), **o** subir el dataset a mano para tener `/content/datalake/landing/` con los 7 CSV y `usage_events_stream/*.jsonl`.
 3. En AstraDB: crear una base **Serverless (Non-Vector)** y el keyspace **`cloud_analytics`**; generar un **application token** (`AstraCS:...`) y descargar el **Secure Connect Bundle** (zip). Subir el zip a `/content/`.
 4. Cargá las credenciales: copiar `.env.example` a `.env` y completarlo, **o** cargar `SCB_PATH`, `ASTRA_TOKEN`, `ASTRA_KEYSPACE` en **Colab Secrets**.
 5. *Entorno de ejecución → Ejecutar todo.* El notebook corre `Landing → Bronze → Silver → Gold → Cassandra`, ejecuta Q1 y Q2, y muestra la prueba de idempotencia.
