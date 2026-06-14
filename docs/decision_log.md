@@ -15,6 +15,10 @@ Usamos tablas CQL, no el Document API de Astra, para poder definir la partition 
 ## 4. Claves Cassandra
 `PRIMARY KEY ((org_id, service), usage_date)`. Q1 pide costo diario por org+servicio en un rango → con esa clave es una lectura de una sola partición, ordenada por fecha. Una tabla por consulta.
 
+`usage_date DESC` (no ASC) porque las consultas miran lo más reciente primero, y Cassandra lee secuencial dentro de la partición — tener lo nuevo arriba evita recorrer toda la partición.
+
+Tamaño de partición: 80 orgs × 6 servicios = 480 particiones posibles, ~23 filas cada una (11050/480). Son particiones chiquitas, lo cual está perfecto para Cassandra (el problema serían particiones gigantes, no chicas).
+
 ## 5. Features de `metric`
 `requests`, `cpu_hours`, etc. salen de `sum(value WHERE metric=X)`, no de `count(*)`. Contar filas etiquetaría "cantidad de eventos" como "requests", que es otra cosa. (Bug real que evitamos.)
 
@@ -25,10 +29,10 @@ Usamos tablas CQL, no el Document API de Astra, para poder definir la partition 
 z-score solo marca mucho por la cola de outliers, p99 es medio bruto, MAD aguanta mejor. Por eso marcamos sólo cuando coinciden **2 de 3** — con eso bajamos de ~211 a ~89. Los estadísticos van por servicio (los costos no están en la misma escala). `K=1.5` sobre p99 es el único número que elegimos a mano; el resto (3σ, 1.4826 del MAD) son estándar. Guardamos qué métodos dispararon en `anomaly_methods`.
 
 ## 8. Watermark de 10 min
-Honestamente, es un valor de demostración: los JSONL son archivos estáticos, no un feed real, así que no hay una latencia "verdadera" que medir. 10 minutos alcanza para tolerar desorden entre archivos. Con un feed productivo, este número se ajustaría midiendo cuánto llega tarde de verdad.
+Elegimos 10 minutos porque la granularidad del `timestamp` es de minutos y los archivos simulan lotes de ~5 min, así que 10 da margen para que llegue un lote tarde sin descartarlo. Es un valor de demo (los JSONL son estáticos, no hay latencia real que medir); con un feed productivo se ajustaría midiendo cuánto llega tarde de verdad.
 
 ## 9. Trigger `availableNow`
-La fuente es una carpeta fija de archivos. `availableNow` procesa todo y termina, así la corrida es reproducible y no deja un stream colgado. Con un feed vivo se cambiaría a `processingTime`.
+La fuente es una carpeta fija de archivos. `availableNow` procesa todo y termina, así la corrida es reproducible y no deja un stream colgado. Con un feed vivo se cambiaría a `processingTime` y nada más del código cambia.
 
 ## 10. Idempotencia
 Archivos replayables + checkpoint en el stream + UPSERT por clave natural. Re-ejecutar no cambia el conteo (se prueba en el notebook con antes/después).
@@ -65,3 +69,8 @@ La regla 3 manda a quarantine filas con `unit` nulo aunque tengan un `cost_usd_i
 
 ## 21. Speed Layer a tabla propia
 La capa de velocidad (`foreachBatch`) escribe a `org_daily_usage_stream`, **no** al mart del batch. Sólo calcula costo y requests; si escribiera a la tabla del batch, pondría en cero `cpu_hours`/`storage`/`genai` y pisaría lo que cargó el batch. Tabla separada = las dos vías conviven sin destruirse.
+
+## 22. Performance
+- Carga a Cassandra con `execute_concurrent_with_args` (concurrency=50), no un `execute` por fila — para 11k filas la diferencia es grande.
+- `broadcast` en los joins (orgs ~80 filas, stats ~6) → sin shuffle.
+- Pendiente para la final: el Bronze de streaming con `availableNow` escribe un Parquet por micro-batch, así que quedan varios archivos chicos. Un `coalesce`/compactación post-stream lo junta; en Colab no molesta, pero hay que tenerlo en cuenta a escala.
