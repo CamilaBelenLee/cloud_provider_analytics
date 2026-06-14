@@ -1,5 +1,7 @@
 # Log de decisiones
 
+Lo que decidimos y por qué. Sirve de guion para el video.
+
 ## 1. Lambda vs Kappa
 Elegimos **Lambda**. Los CSV (orgs, users, billing, etc.) son estados que cambian con cadencia humana → batch. `usage_events_stream` viene fragmentado para simular un feed → streaming. Kappa nos obligaría a inventar captura de cambios sobre CSV estáticos y a meter un broker tipo Kafka, que no está en el stack que nos dieron.
 
@@ -41,7 +43,7 @@ Archivos replayables + checkpoint en el stream + UPSERT por clave natural. Re-ej
 `append` en la ingesta (no agrega nada). `update` en la Speed Layer porque la agregación diaria se actualiza con cada micro-batch, y el UPSERT de Cassandra pisa por clave.
 
 ## 12. Conformance
-Miramos `service` y `region`: ya venían consistentes (`compute`, `us-east`…). No agregamos `upper/trim` para no meter transformaciones que no hacen falta. Si apareciera ruido de casing, iría en Silver.
+Miramos `service`, `region` y `metric` con un `distinct().show()` en el perfilado: vienen consistentes (`compute`, `us-east`, `requests`…), sin variantes de casing ni espacios. Por eso no agregamos `upper/trim` — sería transformar algo que ya está limpio. Si apareciera ruido de casing, iría en Silver.
 
 ## 13. Nulos
 Nulos de `unit` con `value` presente → quarantine (~2038). El resto (value nulo, nps nulo, csat nulo) los dejamos como NULL — no tiene sentido inventar un valor. Las features numéricas se llevan a 0 sólo en Gold, donde 0 = "sin actividad ese día".
@@ -59,7 +61,7 @@ Hay un `nps_score=101` (fuera de rango) en orgs. No nos afecta: usamos orgs sól
 La dedupe del stream sólo cubre la ventana del watermark (10 min). Como los eventos abarcan ~60 días, agregamos un `dropDuplicates(["event_id"])` por lotes en Silver para unicidad global. El dataset igual no trae duplicados (43.200 event_id únicos), así que esto garantiza la propiedad más que eliminar filas.
 
 ## 18. Listar servicios en Q2
-Q2 necesita saber qué servicios tiene una org. No lo hardcodeamos (un servicio nuevo quedaría afuera del top-N sin avisar) ni queremos escanear en producción. Para el MVP usamos un scan acotado + filtro en la app (siempre actualizado, ok para ~11k filas); la evolución es un mart `top_services_by_org` (documentado en `schema.cql`) que sirve el ranking directo.
+Q2 necesita saber qué servicios tiene una org. No lo hardcodeamos (un servicio nuevo quedaría afuera sin avisar) ni queremos escanear toda la tabla (gatilla un warning de Cassandra y no escala). Materializamos una tabla índice `services_by_org` con PK `((org_id), service)`: Q2 lee los servicios de una org en **una sola partición**, sin scan y siempre actualizada. Se puebla en la misma carga.
 
 ## 19. Tipo colección en Cassandra → `anomaly_methods set<text>`
 La tabla usa una columna de tipo colección: `anomaly_methods set<text>`. Guarda qué métodos marcaron anomalía ese día (p. ej. `{'zscore','mad'}`). Un `set` encaja porque es un conjunto sin orden ni repetidos, y el dato ya lo calculamos en Silver. Lo agregamos al `CREATE TABLE`, al `INSERT` y a la agregación de Gold (`collect_set` + `flatten`).
@@ -71,6 +73,9 @@ La regla 3 manda a quarantine filas con `unit` nulo aunque tengan un `cost_usd_i
 La capa de velocidad (`foreachBatch`) escribe a `org_daily_usage_stream`, **no** al mart del batch. Sólo calcula costo y requests; si escribiera a la tabla del batch, pondría en cero `cpu_hours`/`storage`/`genai` y pisaría lo que cargó el batch. Tabla separada = las dos vías conviven sin destruirse.
 
 ## 22. Performance
-- Carga a Cassandra con `execute_concurrent_with_args` (concurrency=50), no un `execute` por fila — para 11k filas la diferencia es grande.
-- `broadcast` en los joins (orgs ~80 filas, stats ~6) → sin shuffle.
+- Carga a Cassandra con `execute_concurrent_with_args` (concurrency=50), no un `execute` por fila — para 11k filas la diferencia es grande. La Speed Layer usa lo mismo.
+- `broadcast` en los joins (orgs ~80 filas, stats ~6) → sin shuffle. Lo confirmamos con `explain("formatted")`: en el plan aparece `BroadcastHashJoin`.
 - Pendiente para la final: el Bronze de streaming con `availableNow` escribe un Parquet por micro-batch, así que quedan varios archivos chicos. Un `coalesce`/compactación post-stream lo junta; en Colab no molesta, pero hay que tenerlo en cuenta a escala.
+
+## 23. Verificar el plan con `explain`
+Agregamos un `silver.explain("formatted")` después del join de enriquecimiento para confirmar que Spark usa `BroadcastHashJoin` (y no un shuffle join). Es la evidencia directa de que el `broadcast` que pedimos efectivamente se aplica.

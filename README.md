@@ -8,10 +8,10 @@ Pipeline analítico con **arquitectura Lambda** para un proveedor de nube: inges
 
 ## Quickstart (pasos exactos)
 
-1. Abrir el notebook en Colab con la insignia de arriba (o *Archivo → Abrir notebook → GitHub* y pegá la URL del repo).
-2. **Datos:** correr la celda opcional *0b* (clona el repo y copia `datalake/landing/` a `/content/`), **o** subir el dataset a mano para tener `/content/datalake/landing/` con los 7 CSV y `usage_events_stream/*.jsonl`.
-3. En AstraDB: crer una base **Serverless (Non-Vector)** y el keyspace **`cloud_analytics`**; generar un **application token** (`AstraCS:...`) y descargar el **Secure Connect Bundle** (zip). Subir el zip a `/content/`.
-4. Cargá las credenciales **sin hardcodear**: copiar `.env.example` a `.env` y completarlo, **o** cargar `SCB_PATH`, `ASTRA_TOKEN`, `ASTRA_KEYSPACE` en **Colab Secrets**.
+1. Abrí el notebook en Colab con la insignia de arriba (o *Archivo → Abrir notebook → GitHub* y pegá la URL del repo).
+2. **Datos:** corré la celda opcional *0b* (clona el repo y copia `datalake/landing/` a `/content/`), **o** subí el dataset a mano para tener `/content/datalake/landing/` con los 7 CSV y `usage_events_stream/*.jsonl`.
+3. En AstraDB: creá una base **Serverless (Non-Vector)** y el keyspace **`cloud_analytics`**; generá un **application token** (`AstraCS:...`) y descargá el **Secure Connect Bundle** (zip). Subí el zip a `/content/`.
+4. Cargá las credenciales **sin hardcodear**: copiá `.env.example` a `.env` y completalo, **o** cargá `SCB_PATH`, `ASTRA_TOKEN`, `ASTRA_KEYSPACE` en **Colab Secrets** (🔑).
 5. *Entorno de ejecución → Ejecutar todo.* El notebook corre `Landing → Bronze → Silver → Gold → Cassandra`, ejecuta Q1 y Q2, y muestra la prueba de idempotencia.
 
 ```
@@ -25,9 +25,9 @@ cloud-provider-analytics/
 ├── cql/
 │   └── schema.cql
 ├── docs/
-│   ├── architecture.png               # diagrama actualizado del MVP actual
+│   ├── architecture.svg               # diagrama actualizado
 │   ├── decision_log.md                # log de decisiones
-│   └── evidence/                      # archivos (CQL+resultado, conteos, tamaños)
+│   └── evidence/                      # capturas (CQL+resultado, conteos, tamaños)
 └── datalake/
     └── landing/                       # datos provistos (se versionan)
     #   bronze/ silver/ gold/ quarantine/ se GENERAN al correr (no se versionan)
@@ -43,9 +43,9 @@ cloud-provider-analytics/
 
 ### Zonas del Data Lake
 - **Landing** — archivos originales, inmutables.
-- **Bronze** — Parquet tipado, deduplicado, `ingest_ts` + `source_file`, particionado.
-- **Silver** — limpieza, conformance, enriquecimiento (joins broadcast), 3 reglas de calidad + quarantine, flag de anomalía por servicio.
-- **Gold** — marts de negocio, agregados, redondeados en el borde de serving.
+- **Bronze** — Parquet tipado y deduplicado, con `ingest_ts` + `source_file` de procedencia. Mismo grano que la fuente; particionado.
+- **Silver** — el grueso del trabajo: limpieza, 3 reglas de calidad con quarantine, enriquecimiento por broadcast join con las dimensiones, y el flag de anomalía por servicio (z-score/MAD/p99).
+- **Gold** — marts listos para servir.
 
 ## El dato (notas del esquema real)
 
@@ -59,7 +59,7 @@ Tres reglas sobre eventos: `event_id` no nulo; `cost_usd_increment ≥ -0.01`; `
 
 ## Detección de anomalías
 
-**z-score**, **MAD** y **p99** por servicio; se marca anomalía sólo cuando **coinciden ≥2 de 3** (consenso → menos falsos positivos). Las anomalías se **marcan, no se eliminan ni recortan** — son los picos de costo reales (la señal de FinOps), que se exponen en lugar de ocultarse.
+**z-score**, **MAD** y **p99** por servicio; se marca anomalía sólo cuando **coinciden ≥2 de 3** (consenso → menos falsos positivos). Las anomalías se **marcan, no se borran** — son los picos de costo que FinOps quiere ver.
 
 ## Serving — tablas CQL (con una columna colección)
 

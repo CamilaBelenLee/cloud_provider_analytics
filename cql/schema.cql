@@ -25,15 +25,22 @@ CREATE TABLE IF NOT EXISTS cloud_analytics.org_daily_usage_stream (
   PRIMARY KEY ((org_id, service), usage_date)
 ) WITH CLUSTERING ORDER BY (usage_date DESC);
 
+-- Índice para Q2: qué servicios tiene una org, en una sola partición (evita escanear la tabla grande):
+CREATE TABLE IF NOT EXISTS cloud_analytics.services_by_org (
+  org_id text,
+  service text,
+  PRIMARY KEY ((org_id), service)
+);
+
 -- Q1: costos y requests diarios por org+servicio en un rango (lectura de una sola partición)
 -- SELECT usage_date, daily_cost_usd, requests
 -- FROM cloud_analytics.org_daily_usage_by_service
 -- WHERE org_id=? AND service=? AND usage_date>=? AND usage_date<=?;
 
 -- Q2: top-N servicios por costo en los últimos 14 días para una org.
--- El top-N sobre un valor calculado cruza particiones, así que se agrega del lado de la app
--- sobre las filas por servicio de la org en la ventana (ver notebook).
--- Alternativa de producción — un mart dedicado que resuelve Q2 completo (ranking ya servido):
+-- Los servicios de la org salen de services_by_org (1 partición, sin scan); el costo de cada uno
+-- de org_daily_usage_by_service en la ventana, y el top-N se ordena del lado de la app.
+-- Alternativa de producción — un mart dedicado que sirve el ranking ya calculado:
 -- CREATE TABLE cloud_analytics.top_services_by_org (
 --   org_id text, total_cost double, service text,
 --   PRIMARY KEY ((org_id), total_cost, service)
