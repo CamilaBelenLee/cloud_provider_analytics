@@ -1,0 +1,8 @@
+==================================================================
+  CRITERIO + · Rutas y tamaños del particionado
+==================================================================
+  2.3M	/content/datalake/bronze/events
+  16M	/content/datalake/silver/events
+     particiones: ['usage_date=2025-07-03', 'usage_date=2025-07-04', 'usage_date=2025-07-05', 'usage_date=2025-07-06'] …
+  1.2M	/content/datalake/gold/org_daily_usage_by_service
+     particiones: ['usage_date=2025-07-03', 'usage_date=2025-07-04', 'usage_date=2025-07-05', 'usage_date=2025-07-06'] …

@@ -1,0 +1,9 @@
+
+==================================================================
+  CRITERIO 6 · Reprocesar no duplica (idempotencia)
+==================================================================
+WARNING:cassandra.protocol:Server warning: Aggregation query used without partition key
+WARNING:cassandra.protocol:Server warning: Aggregation query used without partition key
+  Conteo antes   : 11050
+  Conteo después : 11050
+  Idempotente    : True

@@ -75,7 +75,10 @@ La capa de velocidad (`foreachBatch`) escribe a `org_daily_usage_stream`, **no**
 ## 22. Performance
 - Carga a Cassandra con `execute_concurrent_with_args` (concurrency=50), no un `execute` por fila — para 11k filas la diferencia es grande. La Speed Layer usa lo mismo.
 - `broadcast` en los joins (orgs ~80 filas, stats ~6) → sin shuffle. Lo confirmamos con `explain("formatted")`: en el plan aparece `BroadcastHashJoin`.
-- Pendiente para la final: el Bronze de streaming con `availableNow` escribe un Parquet por micro-batch, así que quedan varios archivos chicos. Un `coalesce`/compactación post-stream lo junta; en Colab no molesta, pero hay que tenerlo en cuenta a escala.
+- Compactación: el Bronze de streaming con `availableNow` escribe un Parquet por micro-batch, así que quedan archivos chicos. Para el MVP **decidimos no compactar** porque en Colab el volumen no lo justifica; en producción un `OPTIMIZE`/compactación post-ingesta los junta.
 
 ## 23. Verificar el plan con `explain`
 Agregamos un `silver.explain("formatted")` después del join de enriquecimiento para confirmar que Spark usa `BroadcastHashJoin` (y no un shuffle join). Es la evidencia directa de que el `broadcast` que pedimos efectivamente se aplica.
+
+## 24. Merge batch + speed en serving → fuera del MVP
+En una Lambda completa la capa de serving mergea el resultado del batch (histórico completo) con el de la speed (lo más reciente) al consultar. No lo implementamos: servimos las dos vías en tablas separadas (`org_daily_usage_by_service` y `org_daily_usage_stream`) y el merge sería trabajo de la capa de serving en la entrega final. Para el MVP, con fuente estática, las dos calculan lo mismo, así que el merge no aportaría nada distinto todavía.

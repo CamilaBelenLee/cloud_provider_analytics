@@ -1,0 +1,17 @@
+
+==================================================================
+  CRITERIO 3 · Mart FinOps en Gold + tabla en Cassandra poblada
+==================================================================
+WARNING:cassandra.protocol:Server warning: Aggregation query used without partition key
+  Filas en Gold (mart FinOps)      :  11050
+  Filas en Cassandra (org_daily…)  :  11050
++------------+-------+--------------+--------+---------+----------------+------------+---------+------------------+----------+
+|org_id      |service|daily_cost_usd|requests|cpu_hours|storage_gb_hours|genai_tokens|carbon_kg|anomaly_methods   |usage_date|
++------------+-------+--------------+--------+---------+----------------+------------+---------+------------------+----------+
+|org_rixa11dp|genai  |340.53        |390.0   |0.0473   |8.3086          |5646        |0.079671 |[zscore, mad, p99]|2025-08-24|
+|org_c11ertj5|genai  |334.68        |237.0   |0.0      |12.9349         |0           |0.0      |[zscore, mad, p99]|2025-07-11|
+|org_tvhhpbmy|genai  |313.42        |210.0   |1.3851   |0.0             |0           |0.0      |[zscore, mad, p99]|2025-07-04|
+|org_x7eedtjv|compute|311.26        |249.0   |1.8107   |0.0             |0           |0.0      |[zscore, mad, p99]|2025-07-09|
+|org_5935a0l7|compute|271.64        |267.0   |1.1745   |7.2181          |0           |0.0      |[zscore, mad, p99]|2025-07-09|
++------------+-------+--------------+--------+---------+----------------+------------+---------+------------------+----------+
+only showing top 5 rows

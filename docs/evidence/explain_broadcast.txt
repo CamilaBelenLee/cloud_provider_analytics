@@ -1,0 +1,86 @@
+== Physical Plan ==
+AdaptiveSparkPlan (14)
++- Project (13)
+   +- BroadcastHashJoin LeftOuter BuildRight (12)
+      :- Filter (8)
+      :  +- SortAggregate (7)
+      :     +- Sort (6)
+      :        +- Exchange (5)
+      :           +- SortAggregate (4)
+      :              +- Sort (3)
+      :                 +- Filter (2)
+      :                    +- Scan parquet  (1)
+      +- BroadcastExchange (11)
+         +- Filter (10)
+            +- Scan parquet  (9)
+
+
+(1) Scan parquet 
+Output [18]: [event_id#6115, timestamp#6116, org_id#6117, resource_id#6118, service#6119, region#6120, metric#6121, value#6122, unit#6123, cost_usd_increment#6124, schema_version#6125, carbon_kg#6126, genai_tokens#6127L, event_ts#6128-T600000ms, value_num#6129, usage_date#6130, ingest_ts#6131, source_file#6132]
+Batched: true
+Location: MetadataLogFileIndex [/content/datalake/bronze/events]
+PushedFilters: [IsNotNull(event_id)]
+ReadSchema: struct<event_id:string,timestamp:string,org_id:string,resource_id:string,service:string,region:string,metric:string,value:string,unit:string,cost_usd_increment:double,schema_version:int,carbon_kg:double,genai_tokens:bigint,event_ts:timestamp,value_num:double,usage_date:date,ingest_ts:timestamp,source_file:string>
+
+(2) Filter
+Input [18]: [event_id#6115, timestamp#6116, org_id#6117, resource_id#6118, service#6119, region#6120, metric#6121, value#6122, unit#6123, cost_usd_increment#6124, schema_version#6125, carbon_kg#6126, genai_tokens#6127L, event_ts#6128-T600000ms, value_num#6129, usage_date#6130, ingest_ts#6131, source_file#6132]
+Condition : isnotnull(event_id#6115)
+
+(3) Sort
+Input [18]: [event_id#6115, timestamp#6116, org_id#6117, resource_id#6118, service#6119, region#6120, metric#6121, value#6122, unit#6123, cost_usd_increment#6124, schema_version#6125, carbon_kg#6126, genai_tokens#6127L, event_ts#6128-T600000ms, value_num#6129, usage_date#6130, ingest_ts#6131, source_file#6132]
+Arguments: [event_id#6115 ASC NULLS FIRST], false, 0
+
+(4) SortAggregate
+Input [18]: [event_id#6115, timestamp#6116, org_id#6117, resource_id#6118, service#6119, region#6120, metric#6121, value#6122, unit#6123, cost_usd_increment#6124, schema_version#6125, carbon_kg#6126, genai_tokens#6127L, event_ts#6128-T600000ms, value_num#6129, usage_date#6130, ingest_ts#6131, source_file#6132]
+Keys [1]: [event_id#6115]
+Functions [17]: [partial_first(timestamp#6116, false), partial_first(org_id#6117, false), partial_first(resource_id#6118, false), partial_first(service#6119, false), partial_first(region#6120, false), partial_first(metric#6121, false), partial_first(value#6122, false), partial_first(unit#6123, false), partial_first(cost_usd_increment#6124, false), partial_first(schema_version#6125, false), partial_first(carbon_kg#6126, false), partial_first(genai_tokens#6127L, false), partial_first(event_ts#6128-T600000ms, false), partial_first(value_num#6129, false), partial_first(usage_date#6130, false), partial_first(ingest_ts#6131, false), partial_first(source_file#6132, false)]
+Aggregate Attributes [34]: [first#6898, valueSet#6899, first#6900, valueSet#6901, first#6902, valueSet#6903, first#6904, valueSet#6905, first#6906, valueSet#6907, first#6908, valueSet#6909, first#6910, valueSet#6911, first#6912, valueSet#6913, first#6914, valueSet#6915, first#6916, valueSet#6917, first#6918, valueSet#6919, first#6920L, valueSet#6921, first#6922, valueSet#6923, first#6924, valueSet#6925, first#6926, valueSet#6927, first#6928, valueSet#6929, first#6930, valueSet#6931]
+Results [35]: [event_id#6115, first#6932, valueSet#6933, first#6934, valueSet#6935, first#6936, valueSet#6937, first#6938, valueSet#6939, first#6940, valueSet#6941, first#6942, valueSet#6943, first#6944, valueSet#6945, first#6946, valueSet#6947, first#6948, valueSet#6949, first#6950, valueSet#6951, first#6952, valueSet#6953, first#6954L, valueSet#6955, first#6956, valueSet#6957, first#6958, valueSet#6959, first#6960, valueSet#6961, first#6962, valueSet#6963, first#6964, valueSet#6965]
+
+(5) Exchange
+Input [35]: [event_id#6115, first#6932, valueSet#6933, first#6934, valueSet#6935, first#6936, valueSet#6937, first#6938, valueSet#6939, first#6940, valueSet#6941, first#6942, valueSet#6943, first#6944, valueSet#6945, first#6946, valueSet#6947, first#6948, valueSet#6949, first#6950, valueSet#6951, first#6952, valueSet#6953, first#6954L, valueSet#6955, first#6956, valueSet#6957, first#6958, valueSet#6959, first#6960, valueSet#6961, first#6962, valueSet#6963, first#6964, valueSet#6965]
+Arguments: hashpartitioning(event_id#6115, 8), ENSURE_REQUIREMENTS, [plan_id=10588]
+
+(6) Sort
+Input [35]: [event_id#6115, first#6932, valueSet#6933, first#6934, valueSet#6935, first#6936, valueSet#6937, first#6938, valueSet#6939, first#6940, valueSet#6941, first#6942, valueSet#6943, first#6944, valueSet#6945, first#6946, valueSet#6947, first#6948, valueSet#6949, first#6950, valueSet#6951, first#6952, valueSet#6953, first#6954L, valueSet#6955, first#6956, valueSet#6957, first#6958, valueSet#6959, first#6960, valueSet#6961, first#6962, valueSet#6963, first#6964, valueSet#6965]
+Arguments: [event_id#6115 ASC NULLS FIRST], false, 0
+
+(7) SortAggregate
+Input [35]: [event_id#6115, first#6932, valueSet#6933, first#6934, valueSet#6935, first#6936, valueSet#6937, first#6938, valueSet#6939, first#6940, valueSet#6941, first#6942, valueSet#6943, first#6944, valueSet#6945, first#6946, valueSet#6947, first#6948, valueSet#6949, first#6950, valueSet#6951, first#6952, valueSet#6953, first#6954L, valueSet#6955, first#6956, valueSet#6957, first#6958, valueSet#6959, first#6960, valueSet#6961, first#6962, valueSet#6963, first#6964, valueSet#6965]
+Keys [1]: [event_id#6115]
+Functions [17]: [first(timestamp#6116, false), first(org_id#6117, false), first(resource_id#6118, false), first(service#6119, false), first(region#6120, false), first(metric#6121, false), first(value#6122, false), first(unit#6123, false), first(cost_usd_increment#6124, false), first(schema_version#6125, false), first(carbon_kg#6126, false), first(genai_tokens#6127L, false), first(event_ts#6128-T600000ms, false), first(value_num#6129, false), first(usage_date#6130, false), first(ingest_ts#6131, false), first(source_file#6132, false)]
+Aggregate Attributes [17]: [first(timestamp#6116)()#6864, first(org_id#6117)()#6866, first(resource_id#6118)()#6868, first(service#6119)()#6870, first(region#6120)()#6872, first(metric#6121)()#6874, first(value#6122)()#6876, first(unit#6123)()#6878, first(cost_usd_increment#6124)()#6880, first(schema_version#6125)()#6882, first(carbon_kg#6126)()#6884, first(genai_tokens#6127L)()#6886L, first(event_ts#6128-T600000ms)()#6888, first(value_num#6129)()#6890, first(usage_date#6130)()#6892, first(ingest_ts#6131)()#6894, first(source_file#6132)()#6896]
+Results [18]: [event_id#6115, first(timestamp#6116)()#6864 AS timestamp#6865, first(org_id#6117)()#6866 AS org_id#6867, first(resource_id#6118)()#6868 AS resource_id#6869, first(service#6119)()#6870 AS service#6871, first(region#6120)()#6872 AS region#6873, first(metric#6121)()#6874 AS metric#6875, first(value#6122)()#6876 AS value#6877, first(unit#6123)()#6878 AS unit#6879, first(cost_usd_increment#6124)()#6880 AS cost_usd_increment#6881, first(schema_version#6125)()#6882 AS schema_version#6883, first(carbon_kg#6126)()#6884 AS carbon_kg#6885, first(genai_tokens#6127L)()#6886L AS genai_tokens#6887L, first(event_ts#6128-T600000ms)()#6888 AS event_ts#6889, first(value_num#6129)()#6890 AS value_num#6891, first(usage_date#6130)()#6892 AS usage_date#6893, first(ingest_ts#6131)()#6894 AS ingest_ts#6895, first(source_file#6132)()#6896 AS source_file#6897]
+
+(8) Filter
+Input [18]: [event_id#6115, timestamp#6865, org_id#6867, resource_id#6869, service#6871, region#6873, metric#6875, value#6877, unit#6879, cost_usd_increment#6881, schema_version#6883, carbon_kg#6885, genai_tokens#6887L, event_ts#6889, value_num#6891, usage_date#6893, ingest_ts#6895, source_file#6897]
+Condition : (isnotnull(cost_usd_increment#6881) AND ((cost_usd_increment#6881 >= -0.01) AND (isnull(value#6877) OR isnotnull(unit#6879))))
+
+(9) Scan parquet 
+Output [5]: [org_id#6701, industry#6703, plan_tier#6704, lifecycle_stage#6708, hq_region#6713]
+Batched: true
+Location: InMemoryFileIndex [file:/content/datalake/bronze/orgs]
+PushedFilters: [IsNotNull(org_id)]
+ReadSchema: struct<org_id:string,industry:string,plan_tier:string,lifecycle_stage:string>
+
+(10) Filter
+Input [5]: [org_id#6701, industry#6703, plan_tier#6704, lifecycle_stage#6708, hq_region#6713]
+Condition : isnotnull(org_id#6701)
+
+(11) BroadcastExchange
+Input [5]: [org_id#6701, industry#6703, plan_tier#6704, lifecycle_stage#6708, hq_region#6713]
+Arguments: HashedRelationBroadcastMode(List(input[0, string, false]),false), [plan_id=10593]
+
+(12) BroadcastHashJoin
+Left keys [1]: [org_id#6867]
+Right keys [1]: [org_id#6701]
+Join type: LeftOuter
+Join condition: None
+
+(13) Project
+Output [22]: [org_id#6867, event_id#6115, timestamp#6865, resource_id#6869, service#6871, region#6873, metric#6875, value#6877, unit#6879, cost_usd_increment#6881, schema_version#6883, carbon_kg#6885, genai_tokens#6887L, event_ts#6889-T600000ms, value_num#6891, usage_date#6893, ingest_ts#6895, source_file#6897, industry#6703, plan_tier#6704, hq_region#6713, lifecycle_stage#6708]
+Input [23]: [event_id#6115, timestamp#6865, org_id#6867, resource_id#6869, service#6871, region#6873, metric#6875, value#6877, unit#6879, cost_usd_increment#6881, schema_version#6883, carbon_kg#6885, genai_tokens#6887L, event_ts#6889, value_num#6891, usage_date#6893, ingest_ts#6895, source_file#6897, org_id#6701, industry#6703, plan_tier#6704, lifecycle_stage#6708, hq_region#6713]
+
+(14) AdaptiveSparkPlan
+Output [22]: [org_id#6867, event_id#6115, timestamp#6865, resource_id#6869, service#6871, region#6873, metric#6875, value#6877, unit#6879, cost_usd_increment#6881, schema_version#6883, carbon_kg#6885, genai_tokens#6887L, event_ts#6889-T600000ms, value_num#6891, usage_date#6893, ingest_ts#6895, source_file#6897, industry#6703, plan_tier#6704, hq_region#6713, lifecycle_stage#6708]
+Arguments: isFinalPlan=false

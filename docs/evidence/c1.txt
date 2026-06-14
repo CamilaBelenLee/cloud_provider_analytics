@@ -1,0 +1,7 @@
+=================================================================
+  CRITERIO 1 · Batch y streaming corren con datos provistos
+==================================================================
+  Bronze orgs     :     80 filas  (batch)
+  Bronze users    :    800 filas  (batch)
+  Bronze billing  :    240 filas  (batch)
+  Bronze events  :  43200 filas  (streaming)

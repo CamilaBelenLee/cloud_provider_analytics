@@ -1,5 +1,5 @@
 ==================================================================
-Consulta Q1 sobre AstraDB (CQL + resultado)
+  CRITERIO 4 · Consulta Q1 sobre AstraDB (CQL + resultado)
 ==================================================================
 -- Q1 (CQL)
 SELECT usage_date, daily_cost_usd, requests
