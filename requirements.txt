@@ -1,5 +1,6 @@
 # Cloud Provider Analytics — MVP dependencies
 # Colab already provides pandas; pinned pyspark for reproducibility.
-pyspark
+pyspark==3.5.1
 cassandra-driver>=3.29
+python-dotenv>=1.0
 pandas>=2.0
