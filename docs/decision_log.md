@@ -1,7 +1,5 @@
 # Log de decisiones
 
-Lo que decidimos y por qué. Sirve de guion para el video.
-
 ## 1. Lambda vs Kappa
 Elegimos **Lambda**. Los CSV (orgs, users, billing, etc.) son estados que cambian con cadencia humana → batch. `usage_events_stream` viene fragmentado para simular un feed → streaming. Kappa nos obligaría a inventar captura de cambios sobre CSV estáticos y a meter un broker tipo Kafka, que no está en el stack que nos dieron.
 
