@@ -298,6 +298,10 @@ El criterio fue ese: colección donde el `groupBy` destruía un dato que alguien
 ### D29 · Q3: por qué el grano es (org, día) y no (org, severidad, día)
 La consigna pide "tickets críticos y tasa de SLA breach por día". Con PK `((org_id), ticket_date)` la evolución diaria sale de una sola partición y el conteo de críticos va como columna. Meter `severity` en la partition key partiría cada org en 4 y obligaría a 4 lecturas para reconstruir el día completo. El detalle por severidad ya está en el `map<text,int>`, así que no se pierde nada.
 
+**Sobre el tamaño del resultado.** Q3 devuelve pocas filas por org y es propio del dataset, no un error: son 1.000 tickets repartidos en 80 orgs y 115 fechas, así que una ventana de 30 días le toca a cada org con 3 filas en promedio (mínimo 1, máximo 7, sobre 77 orgs con actividad en agosto). La org de ejemplo se elige por críticos **dentro de la ventana** y no por su máximo histórico: eligiéndola global cae una cuyo pico está en julio y la consulta de agosto devuelve una sola fila.
+
+Muchos `avg_csat` vienen NULL por lo mismo: sólo 746 de los 1.000 tickets tienen encuesta respondida, así que hay días sin ninguna. Es la decisión de #D26, y se ve en el resultado.
+
 ### D30 · Tokens GenAI y la evolución de esquema
 `genai_tokens` sólo existe en `schema_version=2` (desde 2025-07-18) y sólo para `service='genai'`. En el mart de Q5 eso se ve como días de julio con 0 tokens y costo > 0. **No lo rellenamos ni lo escondemos**: es exactamente la evolución de esquema que la consigna quiere que manejemos, y taparla con un valor inventado sería peor que mostrarla.
 
