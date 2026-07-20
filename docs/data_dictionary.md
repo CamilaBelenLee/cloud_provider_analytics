@@ -75,7 +75,7 @@ Cubre los archivos que consume el pipeline: el feed de eventos y los 4 maestros.
 
 ## Marts de salida (Gold → Cassandra)
 
-### org_daily_usage_by_service — Q1, Q2 · 12.108 filas
+### org_daily_usage_by_service — Q1, Q2 · 11.050 filas
 
 | Campo | Tipo | Notas |
 |---|---|---|
@@ -105,7 +105,7 @@ Cubre los archivos que consume el pipeline: el feed de eventos y los 4 maestros.
 | currencies | set\<text\> | monedas en las que facturó la org ese mes |
 | notas_credito | int | invoices con subtotal < 0 |
 
-### genai_tokens_by_org_date — Q5 · 1.235 filas
+### genai_tokens_by_org_date — Q5 · 1.131 filas
 
 | Campo | Tipo | Notas |
 |---|---|---|

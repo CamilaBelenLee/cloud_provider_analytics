@@ -93,7 +93,7 @@ cloud_provider_analytics/
 - **Landing** — archivos originales, inmutables.
 - **Bronze** — Parquet tipado y deduplicado, con `ingest_ts` + `source_file` de procedencia. Mismo grano que la fuente; particionado.
 - **Silver** — limpieza, 3 reglas de calidad con quarantine, enriquecimiento por broadcast join con las dimensiones, y el flag de anomalía por servicio (z-score/MAD/p99, marca si ≥2 coinciden).
-- **Gold** — cinco marts listos para servir: `org_daily_usage_by_service` (12.108 filas), `tickets_by_org_date` (944), `revenue_by_org_month` (240), `genai_tokens_by_org_date` (1.235) y `cost_anomaly_mart` (89).
+- **Gold** — cinco marts listos para servir: `org_daily_usage_by_service` (11.050 filas), `tickets_by_org_date` (944), `revenue_by_org_month` (240), `genai_tokens_by_org_date` (1.131) y `cost_anomaly_mart` (89).
 
 ### Carga a Cassandra: `foreachPartition`
 Cada partición de Spark abre su propia sesión contra Astra, prepara el statement una vez y manda los INSERT con `execute_async` en ventanas de 500 futures. **El mart nunca pasa por el driver**: traerlo con `collect()` o `toLocalIterator()` es el antipatrón que convierte al driver en cuello de botella y limita la carga a lo que entre en su memoria. La Speed Layer usa la misma función adentro del `foreachBatch`, porque el micro-batch es un DataFrame batch común.
@@ -131,7 +131,7 @@ La Speed Layer escribe a una tabla separada (`org_daily_usage_stream`) para no p
 
 ## Estructura física del Data Lake (evidencia de particionado)
 
-Salida real de la corrida (`du -sh` por zona). Las carpetas `clave=valor` son las particiones que escribe Spark:
+Salida real de la corrida (`du -sh` por zona). Las carpetas `clave=valor` son las particiones que escribe Spark. Las 60 particiones de `usage_date` son los 60 días exactos que cubre el dataset (2025-07-03 a 2025-08-31): si aparecieran 61, sería la señal de que la sesión de Spark no está en UTC (ver `decision_log` §E3).
 
 ```
 datalake/  (29 MB)
@@ -143,15 +143,15 @@ datalake/  (29 MB)
 │   └── events/       2,3 MB   (sin particionar: lo escribe el sink de streaming)
 │
 ├── silver/  (24 MB)
-│   ├── events/        24 MB   [61 particiones] usage_date=2025-07-03 … 2025-08-31 (× service=)
+│   ├── events/        24 MB   [60 particiones] usage_date=2025-07-03 … 2025-08-31 (× service=)
 │   ├── tickets/      280 KB   [4 particiones]  severity=low, medium, high, critical
 │   └── billing/       52 KB   [3 particiones]  currency=ARS, EUR, USD
 │
-├── gold/  (1,0 MB)
-│   ├── org_daily_usage_by_service/  920 KB  [61 particiones] usage_date=
+├── gold/  (980 KB)
+│   ├── org_daily_usage_by_service/  904 KB  [60 particiones] usage_date=
 │   ├── tickets_by_org_date/          16 KB
 │   ├── revenue_by_org_month/         20 KB
-│   ├── genai_tokens_by_org_date/     28 KB
+│   ├── genai_tokens_by_org_date/     24 KB
 │   └── cost_anomaly_mart/            16 KB
 │
 └── quarantine/
@@ -175,11 +175,11 @@ Las 5 consultas corridas contra AstraDB, con su CQL y su resultado, están en `d
 
 | # | Consulta | Mart | Filas |
 |---|---|---|---|
-| Q1 | costos y requests diarios por org y servicio | `org_daily_usage_by_service` | 12.108 |
+| Q1 | costos y requests diarios por org y servicio | `org_daily_usage_by_service` | 11.050 |
 | Q2 | top-N servicios por costo, últimos 14 días | idem + índice `services_by_org` | — |
 | Q3 | tickets críticos y SLA breach por día | `tickets_by_org_date` | 944 |
 | Q4 | revenue mensual normalizado a USD | `revenue_by_org_month` | 240 |
-| Q5 | tokens GenAI y costo estimado por día | `genai_tokens_by_org_date` | 1.235 |
+| Q5 | tokens GenAI y costo estimado por día | `genai_tokens_by_org_date` | 1.131 |
 | — | anomalías de costo (requisito 4) | `cost_anomaly_mart` | 89 |
 
 ---

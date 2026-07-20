@@ -149,7 +149,7 @@ Usamos tablas CQL, no el Document API de Astra, para poder definir la partition 
 
 `usage_date DESC` (no ASC) porque las consultas miran lo más reciente primero, y Cassandra lee secuencial dentro de la partición, y tener lo nuevo arriba evita recorrer toda la partición.
 
-Tamaño de partición: 80 orgs × 6 servicios = 480 particiones posibles, ~25 filas cada una (12.108/480). Son particiones chicas, lo cual consideramos suficiente para Cassandra (el problema serían particiones gigantes).
+Tamaño de partición: 80 orgs × 6 servicios = 480 particiones posibles, ~23 filas cada una (11.050/480). Son particiones chicas, lo cual consideramos suficiente para Cassandra (el problema serían particiones gigantes).
 
 Las otras cuatro tablas parten sólo por `org_id`: 80 particiones de 3 filas (revenue), ~12 (tickets), ~15 (genai) y ~1 (anomalías). Nada cerca del límite práctico de Cassandra.
 
@@ -278,10 +278,10 @@ Cinco marts en Gold, uno por consulta más el de anomalías que pide el punto 4 
 
 | mart | grano | filas | consulta |
 |---|---|---|---|
-| `org_daily_usage_by_service` | org × servicio × día | 12.108 | Q1, Q2 |
+| `org_daily_usage_by_service` | org × servicio × día | 11.050 | Q1, Q2 |
 | `tickets_by_org_date` | org × día | 944 | Q3 |
 | `revenue_by_org_month` | org × mes | 240 | Q4 |
-| `genai_tokens_by_org_date` | org × día (sólo genai) | 1.235 | Q5 |
+| `genai_tokens_by_org_date` | org × día (sólo genai) | 1.131 | Q5 |
 | `cost_anomaly_mart` | org × servicio × día | 89 | requisito 4 |
 
 Q5 podría servirse de `org_daily_usage_by_service` filtrando `service='genai'` (la partition key es `(org_id, service)`, así que la consulta es válida). Le hicimos tabla propia igual porque el grano de Q5 es org × día, no org × servicio × día, y con la tabla dedicada la consulta es una lectura de partición sin post-procesar.
@@ -331,11 +331,28 @@ Es decir que funcionaba **por casualidad**: `availableNow` sin `maxFilesPerTrigg
 Lo que aprendimos: un watermark no se elige razonando sobre lo que *debería* ser la fuente, se elige mirando la fuente. Y que un pipeline que anda no es lo mismo que un pipeline correcto.
 
 ### E2 · Las evidencias de la primera entrega no cerraban entre sí
-`c1.txt` y `c2.txt` decían 43.200 eventos en Bronze y 40.956 válidas. Con esos insumos Gold tiene que dar 12.108, pero `c3.txt` decía 11.050 — de una corrida distinta, con eventos perdidos por §E1. Nadie lo notó porque los archivos se armaban a mano y nunca se compararon entre sí.
+Los archivos de evidencia se armaban a mano, pegando la salida de corridas distintas, así que nada garantizaba que los números de un archivo cerraran con los del otro. Por eso ahora los escribe el pipeline en una sola pasada (§C7): si `c1` dice 43.200 y `c2` dice 40.956 + 2.244, es porque salieron de la misma ejecución y no de dos.
 
 Por eso ahora los escribe el pipeline (§C7).
 
-### E3 · Casi limpiamos datos que estaban bien
+### E3 · El mart diario cambiaba según la zona horaria de la máquina
+
+Corriendo el mismo notebook sobre los mismos datos, el mart de Q1 daba **11.050 filas en Colab y 12.157 en una laptop**. Bronze y Silver coincidían exactamente (43.200 y 40.956), así que la diferencia estaba en el `groupBy` diario.
+
+La causa es `usage_date = to_date(event_ts)`. Los eventos vienen con timestamp ISO-8601 en UTC (`2025-07-03T00:02:00Z`), pero `to_date` convierte usando la **zona horaria de la sesión de Spark**, que por defecto es la del sistema operativo. En UTC−3, todo evento entre las 00:00 y las 03:00 UTC cae en el día anterior:
+
+| TZ de sesión | grupos (org, servicio, fecha) | fechas distintas |
+|---|---|---|
+| UTC | 11.050 | 60 |
+| America/Argentina/Buenos_Aires | 12.157 | 61 |
+
+El dataset abarca del 2025-07-03 al 2025-08-31, o sea **60 días exactos**. Las 61 fechas del segundo caso incluyen un `2025-07-02` que no existe en el origen: es la señal de que la conversión estaba corrida.
+
+Lo arreglamos fijando `spark.sql.session.timeZone=UTC` en la creación de la sesión. El dato es UTC, la agregación diaria tiene que ser en UTC, y así el resultado no depende de dónde se ejecute el notebook.
+
+Lo que aprendimos: un pipeline que da distinto en dos máquinas no está mal en una de las dos, está **mal definido**. La configuración de la sesión es parte de la lógica, no del entorno.
+
+### E4 · Casi limpiamos datos que estaban bien
 Dos veces estuvimos por marcar como "sucio" algo legítimo.
 
 - **CSAT.** La distribución (0:11, 1:45, 2:127, 3:242, 4:197, 5:95, 6:28, 7:1) parecía una escala 1–5 con ruido en 0, 6 y 7. Ajustándola contra una normal redondeada (μ=3,30, σ=1,26) los esperados dan 8,8 / 47,2 / 138,7 / 224,1 / 199,0 / 97,1 / 26,0 / 3,8, y pega en **todo** el rango, colas incluidas. Es una gaussiana sobre 0–7, no una escala recortada. Una regla de rango habría mandado 40 filas legítimas a quarantine.

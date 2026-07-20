@@ -28,10 +28,10 @@ Salida textual del pipeline, un archivo por criterio. Existe para poder verifica
 | Eventos en Bronze | 43.200 — sin pérdida |
 | Silver válidas / quarantine | 40.956 / 2.244 (suman 43.200) |
 | Anomalías marcadas (≥2 de 3 métodos) | 89 |
-| Gold `org_daily_usage_by_service` | 12.108 |
+| Gold `org_daily_usage_by_service` | 11.050 |
 | Gold `tickets_by_org_date` | 944 |
 | Gold `revenue_by_org_month` | 240 |
-| Gold `genai_tokens_by_org_date` | 1.235 |
+| Gold `genai_tokens_by_org_date` | 1.131 |
 | Gold `cost_anomaly_mart` | 89 |
 
 ## Cómo se regeneran
