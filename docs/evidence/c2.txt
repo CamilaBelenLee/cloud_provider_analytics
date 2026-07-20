@@ -1,16 +1,28 @@
+==================================================================
+  CRITERIO 2 · Reglas de calidad y quarantine efectivas
+==================================================================
 
-==================================================================
-  CRITERIO 2 · Reglas de calidad y quarantine efectivas (ejemplos)
-==================================================================
   Válidas    :  40956
-  Quarantine :   2244  (filas que violan ≥1 regla, aisladas)
-+----------------+------+----+------------------+
-|event_id        |value |unit|cost_usd_increment|
-+----------------+------+----+------------------+
-|evt_003mc7ncrk0z|120.0 |NULL|11.5385           |
-|evt_01xb4ljijao2|1.7567|NULL|0.1357            |
-|evt_02fpkgce46vv|1.1257|NULL|0.0927            |
-|evt_02lwdvmyd06y|121.0 |NULL|1.7358            |
-|evt_042dwzutl991|2.0187|NULL|0.092             |
-+----------------+------+----+------------------+
+  Quarantine :   2244  (filas que violan >=1 regla, aisladas)
+  Suma       :  43200  = total en Bronze (nada se pierde en silencio)
+
+  Desglose por regla violada (5 filas violan dos):
++---------------------+----------------------+-----------------+
+|regla_1_event_id_nulo|regla_2_costo_negativo|regla_3_unit_nulo|
++---------------------+----------------------+-----------------+
+|                    0|                   211|             2038|
++---------------------+----------------------+-----------------+
+
+  Ejemplos de filas aisladas:
++----------------+-------+----+------------------+
+|event_id        |value  |unit|cost_usd_increment|
++----------------+-------+----+------------------+
+|evt_05tgqa215bvu|118.0  |NULL|13.0632           |
+|evt_06liao3015j9|15.3504|NULL|0.235             |
+|evt_093eksn2xeyh|116.0  |NULL|5.8815            |
+|evt_097xdl5n0jzx|110.0  |NULL|9.1792            |
+|evt_0a93937k734v|136.0  |NULL|1.5524            |
++----------------+-------+----+------------------+
 only showing top 5 rows
+
+  Trade-off de la regla 3: 7110.15 USD de costo válido queda fuera de Gold.

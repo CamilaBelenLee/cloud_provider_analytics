@@ -1,0 +1,29 @@
+==================================================================
+  DECISIÓN WATERMARK · 60 días, no 10 minutos (ver decision_log #8)
+==================================================================
+
+  Los 120 archivos JSONL NO son cortes temporales: cada uno trae eventos de los
+  60 días completos. Muestra:
+
+    archivo                  min_ts                max_ts
+    events_part_0000.jsonl   2025-07-03T00:08:00Z  2025-08-31T16:32:00Z
+    events_part_0001.jsonl   2025-07-03T02:38:00Z  2025-08-31T23:51:00Z
+    events_part_0119.jsonl   2025-07-03T00:26:00Z  2025-08-31T17:24:00Z
+
+  ¿están ordenados en el tiempo, sin solaparse?  False
+
+  Con esa fuente un watermark corto descarta casi todo: apenas el primer micro-lote
+  ve un evento del 31-08, el watermark salta al final y todo julio queda "atrasado".
+
+  Prueba forzando micro-lotes con maxFilesPerTrigger:
+
+    watermark    maxFilesPerTrigger   eventos en Bronze   resultado
+    10 minutes   (sin límite: 1 lote)    43200 / 43200    OK
+    10 minutes   10  (12 lotes)           7203 / 43200    PIERDE 35997  (83%)
+    60 days      10  (12 lotes)          43200 / 43200    OK
+
+  Con 10 minutos el pipeline andaba por casualidad: availableNow sin maxFilesPerTrigger
+  mete los 120 archivos en un único micro-lote y ahí nada llega tarde. La pérdida es
+  silenciosa - no hay error ni warning, sólo menos filas en Gold.
+
+  El estado queda acotado igual: son 43200 event_id de un histórico cerrado.

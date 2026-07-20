@@ -1,0 +1,151 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3140" height="1030" viewBox="-20 -40 3140 1030">
+<defs>
+<marker id="a-1971c2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1971c2"/></marker>
+<marker id="a-e03131" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#e03131"/></marker>
+<marker id="a-868e96" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#868e96"/></marker>
+<marker id="a-fab005" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#fab005"/></marker>
+<marker id="a-e8590c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#e8590c"/></marker>
+<marker id="a-9c36b5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9c36b5"/></marker>
+</defs>
+<rect x="-20" y="-40" width="3140" height="1030" fill="#ffffff"/>
+<text x="0" y="-4" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="27" font-weight="700" fill="#1e1e1e">Cloud Provider Analytics — Arquitectura Lambda</text>
+<text x="0" y="22" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#6a6a6a">PySpark + Structured Streaming · Data Lake medallion en Parquet · Cassandra (AstraDB) query-first</text>
+<rect x="0" y="60" width="340" height="560" rx="10" fill="#b2f2bb" fill-opacity="0.2" stroke="#2f9e44" stroke-width="1.5" stroke-dasharray="8 6"/>
+<text x="16" y="86" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#2f9e44" letter-spacing="0.6">LANDING (inmutable)</text>
+<rect x="460" y="60" width="340" height="560" rx="10" fill="#e9ecef" fill-opacity="0.3" stroke="#868e96" stroke-width="1.5" stroke-dasharray="8 6"/>
+<text x="476" y="86" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#868e96" letter-spacing="0.6">INGESTA</text>
+<rect x="920" y="60" width="1180" height="520" rx="10" fill="#e9ecef" fill-opacity="0.3" stroke="#868e96" stroke-width="1.5" stroke-dasharray="8 6"/>
+<text x="936" y="86" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#868e96" letter-spacing="0.6">DATA LAKE — Parquet particionado</text>
+<rect x="2220" y="60" width="340" height="560" rx="10" fill="#e9ecef" fill-opacity="0.3" stroke="#868e96" stroke-width="1.5" stroke-dasharray="8 6"/>
+<text x="2236" y="86" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#868e96" letter-spacing="0.6">CARGA</text>
+<rect x="2680" y="60" width="420" height="760" rx="10" fill="#eebefa" fill-opacity="0.16" stroke="#9c36b5" stroke-width="1.5" stroke-dasharray="8 6"/>
+<text x="2696" y="86" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#9c36b5" letter-spacing="0.6">SERVING</text>
+<rect x="30" y="140" width="280" height="200" rx="8" fill="#d3f9d8" stroke="#2f9e44" stroke-width="2"/>
+<text x="170.0" y="198.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1e1e1e">4 CSV maestros</text>
+<text x="48" y="236.0" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12.5" fill="#1e1e1e" xml:space="preserve">customers_orgs        80</text>
+<text x="48" y="255.0" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12.5" fill="#1e1e1e" xml:space="preserve">users                800</text>
+<text x="48" y="274.0" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12.5" fill="#1e1e1e" xml:space="preserve">billing_monthly      240</text>
+<text x="48" y="293.0" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12.5" fill="#1e1e1e" xml:space="preserve">support_tickets     1000</text>
+<rect x="30" y="400" width="280" height="200" rx="8" fill="#ffe3e3" stroke="#e03131" stroke-width="2"/>
+<text x="170.0" y="458.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1e1e1e">usage_events_stream</text>
+<text x="170.0" y="477.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" fill="#1e1e1e">*.jsonl</text>
+<text x="170.0" y="515.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">120 archivos · 43.200 eventos</text>
+<text x="170.0" y="534.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">schema v1 + v2 (corte 18-07)</text>
+<text x="170.0" y="553.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">cada archivo cubre los 60 días</text>
+<rect x="490" y="140" width="280" height="200" rx="8" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="630.0" y="198.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1e1e1e">Spark Batch</text>
+<text x="630.0" y="217.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" fill="#1e1e1e">spark.read.csv</text>
+<text x="630.0" y="255.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">schema explícito</text>
+<text x="630.0" y="274.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">dedup por clave natural</text>
+<text x="630.0" y="293.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">ingest_ts + source_file</text>
+<rect x="490" y="400" width="280" height="200" rx="8" fill="#ffe3e3" stroke="#e03131" stroke-width="2"/>
+<text x="630.0" y="458.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1e1e1e">Structured Streaming</text>
+<text x="630.0" y="477.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" fill="#1e1e1e">spark.readStream.json</text>
+<text x="630.0" y="515.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">watermark 60 días</text>
+<text x="630.0" y="534.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">dedup por event_id</text>
+<text x="630.0" y="553.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">trigger availableNow</text>
+<rect x="960" y="130" width="300" height="400" rx="8" fill="#ffe8cc" stroke="#e8590c" stroke-width="2"/>
+<text x="1110.0" y="250.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1e1e1e">BRONZE</text>
+<text x="1110.0" y="269.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" fill="#1e1e1e">Parquet tipado</text>
+<text x="1110.0" y="307.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">mismo grano que la fuente</text>
+<text x="1110.0" y="326.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">dedup por event_id</text>
+<text x="1110.0" y="364.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">procedencia</text>
+<text x="1110.0" y="383.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">ingest_ts / source_file</text>
+<text x="1110.0" y="421.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">part. date= / service=</text>
+<rect x="1340" y="130" width="340" height="400" rx="8" fill="#f1f3f5" stroke="#868e96" stroke-width="2"/>
+<text x="1510.0" y="231.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1e1e1e">SILVER</text>
+<text x="1510.0" y="250.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" fill="#1e1e1e">limpieza + conformance</text>
+<text x="1510.0" y="288.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">3 reglas de calidad + quarantine</text>
+<text x="1510.0" y="307.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">broadcast join con orgs_dim</text>
+<text x="1510.0" y="326.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">anomalías z-score / MAD / p99</text>
+<text x="1510.0" y="345.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">(marca si coinciden ≥2 de 3)</text>
+<text x="1510.0" y="383.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">tickets: csat NULL, abiertos</text>
+<text x="1510.0" y="402.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">billing: FX USD → 1.0</text>
+<text x="1510.0" y="440.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">part. usage_date / service</text>
+<rect x="1760" y="130" width="300" height="400" rx="8" fill="#fff9db" stroke="#fab005" stroke-width="2"/>
+<text x="1910.0" y="269.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1e1e1e">GOLD</text>
+<text x="1910.0" y="288.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="600" fill="#1e1e1e">5 marts de negocio</text>
+<text x="1910.0" y="326.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#1e1e1e">org_daily_usage_by_service</text>
+<text x="1910.0" y="345.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#1e1e1e">tickets_by_org_date</text>
+<text x="1910.0" y="364.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#1e1e1e">revenue_by_org_month</text>
+<text x="1910.0" y="383.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#1e1e1e">genai_tokens_by_org_date</text>
+<text x="1910.0" y="402.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#1e1e1e">cost_anomaly_mart</text>
+<rect x="1340" y="660" width="340" height="112" rx="8" fill="#ffffff" stroke="#868e96" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="1510" text-anchor="middle" y="692" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1e1e1e">Quarantine</text>
+<text x="1510" text-anchor="middle" y="716" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#4a4a4a">filas que violan ≥1 regla, aisladas</text>
+<text x="1510" text-anchor="middle" y="738" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#4a4a4a">se guarda la fila completa, re-procesable</text>
+<rect x="490" y="660" width="280" height="64" rx="8" fill="#ffffff" stroke="#868e96" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="630" y="698" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="14" fill="#4a4a4a">checkpoint ingesta</text>
+<rect x="2250" y="660" width="280" height="64" rx="8" fill="#ffffff" stroke="#868e96" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="2390" y="698" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="14" fill="#4a4a4a">checkpoint speed</text>
+<rect x="2250" y="150" width="280" height="200" rx="8" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="2390.0" y="208.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1e1e1e">Carga distribuida</text>
+<text x="2390.0" y="227.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" fill="#1e1e1e">foreachPartition</text>
+<text x="2390.0" y="265.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">sesión por partición</text>
+<text x="2390.0" y="284.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">execute_async · ventana 500</text>
+<text x="2390.0" y="303.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" fill="#1e1e1e">el mart no pasa por el driver</text>
+<rect x="2250" y="400" width="280" height="200" rx="8" fill="#ffe3e3" stroke="#e03131" stroke-width="2"/>
+<text x="2390.0" y="458.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1e1e1e">Speed layer</text>
+<text x="2390.0" y="477.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="600" fill="#1e1e1e">foreachBatch · availableNow *</text>
+<text x="2390.0" y="515.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#1e1e1e">readStream sobre el mismo JSONL</text>
+<text x="2390.0" y="534.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#1e1e1e">ventana tumbling 1 día</text>
+<text x="2390.0" y="553.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#1e1e1e">outputMode update</text>
+<rect x="2710" y="110" width="360" height="670" rx="10" fill="#f3e8fc" stroke="#9c36b5" stroke-width="2"/>
+<text x="2890" y="140" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="16.5" font-weight="700" fill="#9c36b5">Cassandra (AstraDB)</text>
+<text x="2890" y="160" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12.5" fill="#9c36b5">keyspace cloud_analytics</text>
+<rect x="2732" y="178" width="316" height="64" rx="6" fill="#ffffff" stroke="#9c36b5" stroke-width="1.6"/>
+<text x="2890.0" y="204" text-anchor="middle" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12.5" font-weight="600" fill="#1e1e1e">org_daily_usage_by_service</text>
+<text x="2890.0" y="224" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11.5" fill="#6a6a6a">PK ((org_id, service), usage_date)</text>
+<rect x="2732" y="262" width="316" height="64" rx="6" fill="#ffffff" stroke="#9c36b5" stroke-width="1.6"/>
+<text x="2890.0" y="288" text-anchor="middle" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12.5" font-weight="600" fill="#1e1e1e">services_by_org</text>
+<text x="2890.0" y="308" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11.5" fill="#6a6a6a">PK ((org_id), service)</text>
+<rect x="2732" y="346" width="316" height="64" rx="6" fill="#ffffff" stroke="#9c36b5" stroke-width="1.6"/>
+<text x="2890.0" y="372" text-anchor="middle" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12.5" font-weight="600" fill="#1e1e1e">tickets_by_org_date</text>
+<text x="2890.0" y="392" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11.5" fill="#6a6a6a">PK ((org_id), ticket_date)</text>
+<rect x="2732" y="430" width="316" height="64" rx="6" fill="#ffffff" stroke="#9c36b5" stroke-width="1.6"/>
+<text x="2890.0" y="456" text-anchor="middle" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12.5" font-weight="600" fill="#1e1e1e">revenue_by_org_month</text>
+<text x="2890.0" y="476" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11.5" fill="#6a6a6a">PK ((org_id), month)</text>
+<rect x="2732" y="514" width="316" height="64" rx="6" fill="#ffffff" stroke="#9c36b5" stroke-width="1.6"/>
+<text x="2890.0" y="540" text-anchor="middle" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12.5" font-weight="600" fill="#1e1e1e">genai_tokens_by_org_date</text>
+<text x="2890.0" y="560" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11.5" fill="#6a6a6a">PK ((org_id), usage_date)</text>
+<rect x="2732" y="598" width="316" height="64" rx="6" fill="#ffffff" stroke="#9c36b5" stroke-width="1.6"/>
+<text x="2890.0" y="624" text-anchor="middle" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12.5" font-weight="600" fill="#1e1e1e">cost_anomaly_mart</text>
+<text x="2890.0" y="644" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11.5" fill="#6a6a6a">PK ((org_id), usage_date, service)</text>
+<rect x="2732" y="682" width="316" height="64" rx="6" fill="#ffffff" stroke="#e03131" stroke-width="1.6"/>
+<text x="2890.0" y="708" text-anchor="middle" font-family="SF Mono, Menlo, Consolas, monospace" font-size="12.5" font-weight="600" fill="#1e1e1e">org_daily_usage_stream</text>
+<text x="2890.0" y="728" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11.5" fill="#6a6a6a">PK ((org_id, service), usage_date)</text>
+<rect x="2790" y="850" width="200" height="66" rx="8" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="2890" y="878" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="14.5" font-weight="700" fill="#1e1e1e">BI / dashboards</text>
+<text x="2890" y="900" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="14.5" fill="#1e1e1e">Q1 – Q5</text>
+<line x1="310" y1="240" x2="486" y2="240" stroke="#1971c2" stroke-width="2" marker-end="url(#a-1971c2)"/>
+<rect x="373.0" y="219.0" width="50.0" height="19" rx="4" fill="#ffffff" stroke="#1971c2" stroke-width="1" stroke-opacity="0.45"/>
+<text x="398.0" y="233.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12.5" fill="#1971c2">batch</text>
+<line x1="310" y1="500" x2="486" y2="500" stroke="#e03131" stroke-width="2" marker-end="url(#a-e03131)"/>
+<rect x="369.4" y="479.0" width="57.2" height="19" rx="4" fill="#ffffff" stroke="#e03131" stroke-width="1" stroke-opacity="0.45"/>
+<text x="398.0" y="493.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12.5" fill="#e03131">stream</text>
+<line x1="770" y1="240" x2="956" y2="240" stroke="#1971c2" stroke-width="2" marker-end="url(#a-1971c2)"/>
+<rect x="830.8" y="219.0" width="64.4" height="19" rx="4" fill="#ffffff" stroke="#1971c2" stroke-width="1" stroke-opacity="0.45"/>
+<text x="863.0" y="233.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12.5" fill="#1971c2">parquet</text>
+<line x1="770" y1="500" x2="956" y2="500" stroke="#e03131" stroke-width="2" marker-end="url(#a-e03131)"/>
+<rect x="834.4" y="479.0" width="57.2" height="19" rx="4" fill="#ffffff" stroke="#e03131" stroke-width="1" stroke-opacity="0.45"/>
+<text x="863.0" y="493.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12.5" fill="#e03131">append</text>
+<line x1="1260" y1="330" x2="1336" y2="330" stroke="#868e96" stroke-width="2" marker-end="url(#a-868e96)"/>
+<line x1="1680" y1="330" x2="1756" y2="330" stroke="#fab005" stroke-width="2" marker-end="url(#a-fab005)"/>
+<line x1="1510" y1="530" x2="1510" y2="656" stroke="#868e96" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#a-868e96)"/>
+<rect x="1470.6" y="572.0" width="78.8" height="19" rx="4" fill="#ffffff" stroke="#868e96" stroke-width="1" stroke-opacity="0.45"/>
+<text x="1510.0" y="586.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12.5" fill="#868e96">inválidas</text>
+<line x1="630" y1="600" x2="630" y2="656" stroke="#868e96" stroke-width="2" stroke-dasharray="7 5"/>
+<line x1="2390" y1="600" x2="2390" y2="656" stroke="#868e96" stroke-width="2" stroke-dasharray="7 5"/>
+<line x1="2060" y1="280" x2="2246" y2="280" stroke="#1971c2" stroke-width="2" marker-end="url(#a-1971c2)"/>
+<line x1="2530" y1="250" x2="2706" y2="250" stroke="#1971c2" stroke-width="2" marker-end="url(#a-1971c2)"/>
+<rect x="2589.4" y="229.0" width="57.2" height="19" rx="4" fill="#ffffff" stroke="#1971c2" stroke-width="1" stroke-opacity="0.45"/>
+<text x="2618.0" y="243.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12.5" fill="#1971c2">upsert</text>
+<line x1="2530" y1="500" x2="2706" y2="500" stroke="#e03131" stroke-width="2" marker-end="url(#a-e03131)"/>
+<rect x="2589.4" y="479.0" width="57.2" height="19" rx="4" fill="#ffffff" stroke="#e03131" stroke-width="1" stroke-opacity="0.45"/>
+<text x="2618.0" y="493.0" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12.5" fill="#e03131">upsert</text>
+<line x1="2890" y1="780" x2="2890" y2="846" stroke="#1971c2" stroke-width="2" marker-end="url(#a-1971c2)"/>
+<text x="0" y="855" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="14.5" font-weight="400" fill="#1e1e1e">* Speed layer: demostración del patrón foreachBatch sobre fuente estática. En una Lambda real correría en paralelo (processingTime) y la capa de serving mergearía batch + speed.</text>
+<text x="14" y="878" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="14.5" font-weight="400" fill="#6a6a6a">Escribe a su propia tabla (org_daily_usage_stream) para no pisar el mart del batch.</text>
+<text x="0" y="918" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="14.5" font-weight="400" fill="#e03131">Watermark de 60 días, no de 10 minutos: los 120 archivos no son cortes temporales, cada uno cubre los 60 días completos,</text>
+<text x="0" y="940" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="14.5" font-weight="400" fill="#e03131">así que un watermark corto descarta como tardío casi todo el histórico. Ver decision_log §D8 y evidence/watermark.txt.</text>
+</svg>

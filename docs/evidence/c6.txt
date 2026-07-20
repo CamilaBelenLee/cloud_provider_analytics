@@ -1,9 +1,13 @@
+==================================================================
+  PENDIENTE · regenerar contra AstraDB · idempotencia sobre AstraDB
+==================================================================
 
-==================================================================
-  CRITERIO 6 · Reprocesar no duplica (idempotencia)
-==================================================================
-WARNING:cassandra.protocol:Server warning: Aggregation query used without partition key
-WARNING:cassandra.protocol:Server warning: Aggregation query used without partition key
-  Conteo antes   : 11050
-  Conteo después : 11050
-  Idempotente    : True
+  Este archivo tenía la salida de una corrida vieja, con números que ya no cierran
+  (Gold 11050 cuando Bronze/Silver de esa misma corrida dan 12108). Lo vaciamos en vez
+  de dejar cifras que se contradicen con c1/c2/c3.
+
+  Se regenera corriendo el notebook completo con credenciales de AstraDB:
+  la celda "Reporte de evidencia" imprime los criterios 1 a 9 (incluidas Q1..Q5 y la
+  idempotencia sobre las 6 tablas) y esa salida se pega acá.
+
+  Lo verificado sin AstraDB (todo el lado Spark) está en c1, c2, c3, c7, fx y watermark.

@@ -1,8 +1,25 @@
 ==================================================================
   CRITERIO + · Rutas y tamaños del particionado
 ==================================================================
-  2.3M	/content/datalake/bronze/events
-  16M	/content/datalake/silver/events
-     particiones: ['usage_date=2025-07-03', 'usage_date=2025-07-04', 'usage_date=2025-07-05', 'usage_date=2025-07-06'] …
-  1.2M	/content/datalake/gold/org_daily_usage_by_service
-     particiones: ['usage_date=2025-07-03', 'usage_date=2025-07-04', 'usage_date=2025-07-05', 'usage_date=2025-07-06'] …
+
+      88K  datalake/bronze/orgs
+           particiones (7): ['hq_region=ap-northeast', 'hq_region=ap-south', 'hq_region=eu-central', 'hq_region=eu-west'] …
+      84K  datalake/bronze/users
+           particiones (6): ['role=admin', 'role=analyst', 'role=data_engineer', 'role=developer'] …
+      44K  datalake/bronze/billing
+           particiones (3): ['currency=ARS', 'currency=EUR', 'currency=USD']
+      76K  datalake/bronze/tickets
+           particiones (6): ['category=availability', 'category=billing', 'category=integration', 'category=performance'] …
+     2.3M  datalake/bronze/events
+      24M  datalake/silver/events
+           particiones (61): ['usage_date=2025-07-02', 'usage_date=2025-07-03', 'usage_date=2025-07-04', 'usage_date=2025-07-05'] …
+     280K  datalake/silver/tickets
+           particiones (4): ['severity=critical', 'severity=high', 'severity=low', 'severity=medium']
+      52K  datalake/silver/billing
+           particiones (3): ['currency=ARS', 'currency=EUR', 'currency=USD']
+     920K  datalake/gold/org_daily_usage_by_service
+           particiones (61): ['usage_date=2025-07-02', 'usage_date=2025-07-03', 'usage_date=2025-07-04', 'usage_date=2025-07-05'] …
+      16K  datalake/gold/tickets_by_org_date
+      20K  datalake/gold/revenue_by_org_month
+      28K  datalake/gold/genai_tokens_by_org_date
+      16K  datalake/gold/cost_anomaly_mart

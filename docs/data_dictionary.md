@@ -1,6 +1,6 @@
 # Diccionario de datos (campos clave)
 
-Cubre los archivos que usa el MVP: el feed de eventos y los 3 maestros del pipeline. Los demás CSV (resources, support_tickets, marketing, nps) entran en la entrega final.
+Cubre los archivos que consume el pipeline: el feed de eventos y los 4 maestros. `resources.csv`, `marketing_touches.csv` y `nps_surveys.csv` quedan sin usar — ninguna de las 5 consultas los necesita.
 
 ## usage_events_stream/*.jsonl — eventos de uso (streaming)
 
@@ -31,7 +31,7 @@ Cubre los archivos que usa el MVP: el feed de eventos y los 3 maestros del pipel
 | plan_tier | string | a veces inconsistente con is_enterprise (documentado, no se usa en FinOps) |
 | is_enterprise | bool | |
 | signup_date | date | |
-| nps_score | double | tiene un 101 fuera de rango; no se usa en el mart FinOps |
+| nps_score | double | un solo valor fuera de rango (101, `org_pac56t4u`). Los 16 negativos son válidos: NPS va de −100 a +100. No entra en ningún mart |
 
 (otros: sales_rep, lifecycle_stage, marketing_source)
 
@@ -58,9 +58,24 @@ Cubre los archivos que usa el MVP: el feed de eventos y los 3 maestros del pipel
 | credits | double | ~57% vacío → `coalesce(credits, 0)` |
 | taxes | double | |
 | currency | string | USD · ARS · EUR; partición de Bronze |
-| exchange_rate_to_usd | double | fuente de FX; en USD trae ruido ~1.0 (entrega final) |
+| exchange_rate_to_usd | double | USD 0,855–1,118 (media 0,9977) → **se fuerza a 1.0**; EUR 0,998–1,198 y ARS 0,00133–0,00162 se respetan |
 
-## Mart de salida — org_daily_usage_by_service (Gold → Cassandra)
+## support_tickets.csv — tickets de soporte (batch)
+
+| Campo | Tipo | Dominio / notas |
+|---|---|---|
+| ticket_id | string | PK; clave de dedupe |
+| org_id | string | FK a customers_orgs |
+| category | string | integration · billing · availability · usability · performance · security; partición de Bronze |
+| severity | string | low (412) · medium (328) · high (204) · critical (56); partición de Silver |
+| created_at | date | 2025-05-09 a 2025-08-31, 115 fechas distintas (arranca antes que los eventos) |
+| resolved_at | date | nulo = ticket abierto (240 de 1000) |
+| csat | double | 254 nulos → se dejan NULL (`avg` los saltea). Distribución 0–7 que ajusta a una normal redondeada: **no hay valores fuera de rango**, ver decision_log #26 |
+| sla_breached | bool | 95 true de 1000 |
+
+## Marts de salida (Gold → Cassandra)
+
+### org_daily_usage_by_service — Q1, Q2 · 12.108 filas
 
 | Campo | Tipo | Notas |
 |---|---|---|
@@ -70,3 +85,39 @@ Cubre los archivos que usa el MVP: el feed de eventos y los 3 maestros del pipel
 | genai_tokens | bigint | sum |
 | carbon_kg | double | sum |
 | anomaly_methods | set\<text\> | métodos que marcaron anomalía ese día (zscore/mad/p99) |
+### tickets_by_org_date — Q3 · 944 filas
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| org_id, ticket_date | text/date | PRIMARY KEY ((org_id), ticket_date) |
+| total_tickets, critical_tickets, tickets_abiertos | bigint | conteos del día |
+| avg_csat | double | NULL si no hubo respuestas ese día (229 org-días) |
+| sla_breach_rate | double | 0..1 — `avg(sla_breached::int)` |
+| severities | map\<text,int\> | conteo por severidad, p. ej. `{'low':3,'critical':1}` |
+
+### revenue_by_org_month — Q4 · 240 filas
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| org_id, month | text/date | PRIMARY KEY ((org_id), month) |
+| subtotal_usd, credits_usd, taxes_usd | double | componentes ya normalizados a USD |
+| net_revenue_usd | double | `(subtotal − credits + taxes) × fx` |
+| currencies | set\<text\> | monedas en las que facturó la org ese mes |
+| notas_credito | int | invoices con subtotal < 0 |
+
+### genai_tokens_by_org_date — Q5 · 1.235 filas
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| org_id, usage_date | text/date | PRIMARY KEY ((org_id), usage_date) |
+| total_tokens | bigint | 0 antes del 2025-07-18 (v1 no trae el campo) |
+| estimated_cost_usd | double | `sum(cost_usd_increment)` de los eventos genai |
+
+### cost_anomaly_mart — requisito 4 · 89 filas
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| org_id, usage_date, service | text/date/text | PRIMARY KEY ((org_id), usage_date, service) |
+| eventos_anomalos | int | eventos marcados ese día |
+| costo_anomalo_usd, costo_max_usd | double | suma y máximo del costo anómalo |
+| anomaly_methods | set\<text\> | métodos que coincidieron (≥2 de 3) |
