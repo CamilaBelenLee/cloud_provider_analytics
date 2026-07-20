@@ -1,10 +1,13 @@
 ==================================================================
-  PENDIENTE · regenerar contra AstraDB · Q4 · revenue mensual con créditos e impuestos, normalizado a USD
+  CRITERIO 7 · Q4 sobre AstraDB (CQL + resultado)
 ==================================================================
+-- Q4 · revenue mensual con créditos e impuestos, normalizado a USD
+SELECT month, subtotal_usd, credits_usd, taxes_usd, net_revenue_usd, currencies, notas_credito
+FROM cloud_analytics.revenue_by_org_month WHERE org_id='org_d14ve92m';
 
-  Se genera corriendo el notebook completo con credenciales de AstraDB: la celda
-  "Reporte de evidencia" escribe este archivo con el CQL exacto y el resultado.
-  La celda 10b empaqueta la carpeta y la baja del navegador para commitearla.
+     month  subtotal_usd  credits_usd  taxes_usd  net_revenue_usd currencies  notas_credito
+2025-08-01       1178.60         0.00     247.51          1426.11      (USD)              0
+2025-07-01       2628.53        25.42     551.99          3155.10      (EUR)              0
+2025-06-01        777.20         0.00     163.21           940.41      (USD)              0
 
-  Lo verificado sin AstraDB (todo el lado Spark) está en c1, c2, c3, c7,
-  fx y watermark.
+  net_revenue_usd = (subtotal - credits + taxes) * fx, con fx=1.0 forzado en USD.

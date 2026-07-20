@@ -1,10 +1,15 @@
 ==================================================================
-  PENDIENTE · regenerar contra AstraDB · Q3 · tickets críticos y tasa de SLA breach por día (últimos 30 días)
+  CRITERIO 6 · Q3 sobre AstraDB (CQL + resultado)
 ==================================================================
+-- Q3 · tickets críticos y tasa de SLA breach por día (últimos 30 días)
+SELECT ticket_date, total_tickets, critical_tickets, tickets_abiertos, sla_breach_rate, avg_csat, severities
+FROM cloud_analytics.tickets_by_org_date
+WHERE org_id='org_w3zp08j3' AND ticket_date>='2025-08-01' AND ticket_date<='2025-08-31';
 
-  Se genera corriendo el notebook completo con credenciales de AstraDB: la celda
-  "Reporte de evidencia" escribe este archivo con el CQL exacto y el resultado.
-  La celda 10b empaqueta la carpeta y la baja del navegador para commitearla.
+ticket_date  total_tickets  critical_tickets  tickets_abiertos  sla_breach_rate  avg_csat severities
+ 2025-08-30              1                 0                 0              0.0       NaN      [low]
+ 2025-08-23              1                 1                 0              0.0       4.0 [critical]
+ 2025-08-15              2                 0                 0              0.0       2.0   [medium]
+ 2025-08-08              1                 1                 1              0.0       3.0 [critical]
 
-  Lo verificado sin AstraDB (todo el lado Spark) está en c1, c2, c3, c7,
-  fx y watermark.
+  avg_csat NULL = esa org no tuvo respuestas de encuesta ese día (no es un 0).

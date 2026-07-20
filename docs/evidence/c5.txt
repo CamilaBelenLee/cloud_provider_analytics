@@ -1,13 +1,13 @@
 ==================================================================
-  PENDIENTE · regenerar contra AstraDB · Q2 sobre AstraDB
+  CRITERIO 5 · Q2 sobre AstraDB (CQL + resultado)
 ==================================================================
+-- Q2 · top-N servicios por costo acumulado, últimos 14 días (org=org_rixa11dp)
+SELECT service FROM cloud_analytics.services_by_org WHERE org_id='org_rixa11dp';
+SELECT daily_cost_usd FROM cloud_analytics.org_daily_usage_by_service
+WHERE org_id='org_rixa11dp' AND service=? AND usage_date>='2025-08-17' AND usage_date<='2025-08-31';
 
-  Este archivo tenía la salida de una corrida vieja, con números que ya no cierran
-  (Gold 11050 cuando Bronze/Silver de esa misma corrida dan 12108). Lo vaciamos en vez
-  de dejar cifras que se contradicen con c1/c2/c3.
-
-  Se regenera corriendo el notebook completo con credenciales de AstraDB:
-  la celda "Reporte de evidencia" imprime los criterios 1 a 9 (incluidas Q1..Q5 y la
-  idempotencia sobre las 6 tablas) y esa salida se pega acá.
-
-  Lo verificado sin AstraDB (todo el lado Spark) está en c1, c2, c3, c7, fx y watermark.
+  service  cost_14d
+    genai    661.97
+analytics    119.14
+  compute    112.08
+ database     67.41

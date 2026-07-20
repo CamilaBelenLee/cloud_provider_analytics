@@ -99,21 +99,33 @@ Cada partición de Spark abre su sesión contra Astra, prepara el statement una 
 ### C3 · Broadcast en los joins de enriquecimiento
 `customers_orgs` tiene 80 filas y la tabla de estadísticos por servicio tiene 6. Broadcastearlas manda la tabla chica a cada executor en vez de mover los eventos por la red, sin shuffle. Lo verificamos en el plan físico: aparece `BroadcastHashJoin` y no `Exchange` del lado de los eventos ([`evidence/explain_broadcast.txt`](evidence/explain_broadcast.txt)).
 
-### C4 · Particionado según quién filtra
+### C4 · Zona horaria de la sesión fijada en UTC
+`usage_date` sale de `to_date(event_ts)`, y `to_date` convierte usando la zona horaria de la **sesión de Spark**, que por defecto hereda la del sistema operativo. Los eventos vienen con timestamp ISO-8601 en UTC, así que la agregación diaria tiene que ser en UTC o el día no significa lo mismo.
+
+No es un detalle cosmético: corriendo la misma corrida en UTC−3, todo evento entre las 00:00 y las 03:00 UTC cae en el día anterior.
+
+| TZ de sesión | grupos (org, servicio, fecha) | fechas distintas |
+|---|---|---|
+| UTC | 11.050 | 60 |
+| UTC−3 | 12.157 | 61 |
+
+El dataset cubre del 2025-07-03 al 2025-08-31, o sea 60 días exactos: las 61 fechas del segundo caso incluyen un `2025-07-02` que no existe en el origen. Por eso fijamos `spark.sql.session.timeZone=UTC` al crear la sesión, y el mart da lo mismo corra donde corra. La configuración de sesión es parte de la lógica, no del entorno.
+
+### C5 · Particionado según quién filtra
 - Eventos y Silver: `usage_date` + `service` — es por donde filtran las consultas.
 - Gold FinOps: `usage_date`.
 - Tickets en Silver: `severity`, **no** fecha. Son 1000 filas en 115 fechas distintas: partir por fecha deja 115 parquets de ~8 filas, que es el antipatrón de archivos chicos.
 - Maestros: columnas de baja cardinalidad (`hq_region`, `role`, `currency`, `category`). Honestamente acá es más por el requisito que por una consulta concreta.
 
-### C5 · Anomalías por consenso
+### C6 · Anomalías por consenso
 z-score, MAD y p99, calculados **por servicio** porque los costos no están en la misma escala. Se marca sólo cuando coinciden **≥2 de 3**: baja de 211 a 89 marcas. Cada método tiene su punto ciego: el z-score se distorsiona con la misma cola que busca, p99 es bruto por definición, y MAD aguanta pero es conservador. El consenso corta falsos positivos. `K=1.5` sobre p99 es el único número que elegimos a mano; 3σ y el 1,4826 del MAD son estándar.
 
-### C6 · Idempotencia por tres vías
+### C7 · Idempotencia por tres vías
 Archivos replayables + checkpoint en el stream + UPSERT por primary key. Las tres juntas dan exactly-once práctico. Si la corrida se cae a la mitad, el checkpoint sabe qué archivos ya consumió, y lo que se haya escrito a Cassandra se pisa con el mismo valor. Se prueba con conteos antes/después sobre las 6 tablas.
 
 Aclaración honesta sobre la dedupe: el dataset trae **43.200 `event_id` únicos sobre 43.200 eventos**, así que hoy no borra una sola fila. Está para que un re-procesamiento sea idempotente si un archivo se re-entrega, no porque haya duplicados.
 
-### C7 · Las evidencias las escribe el pipeline
+### C8 · Las evidencias las escribe el pipeline
 La celda de reporte escribe `docs/evidence/*.txt` además de imprimir. Los archivos que lee el corrector salen de la misma corrida que produjo los números, sin copiar y pegar, que es como se cuelan las inconsistencias (nos pasó: ver §E2).
 
 ---
@@ -331,28 +343,11 @@ Es decir que funcionaba **por casualidad**: `availableNow` sin `maxFilesPerTrigg
 Lo que aprendimos: un watermark no se elige razonando sobre lo que *debería* ser la fuente, se elige mirando la fuente. Y que un pipeline que anda no es lo mismo que un pipeline correcto.
 
 ### E2 · Las evidencias de la primera entrega no cerraban entre sí
-Los archivos de evidencia se armaban a mano, pegando la salida de corridas distintas, así que nada garantizaba que los números de un archivo cerraran con los del otro. Por eso ahora los escribe el pipeline en una sola pasada (§C7): si `c1` dice 43.200 y `c2` dice 40.956 + 2.244, es porque salieron de la misma ejecución y no de dos.
+Los archivos de evidencia se armaban a mano, pegando la salida de corridas distintas, así que nada garantizaba que los números de un archivo cerraran con los del otro. Por eso ahora los escribe el pipeline en una sola pasada (§C8): si `c1` dice 43.200 y `c2` dice 40.956 + 2.244, es porque salieron de la misma ejecución y no de dos.
 
-Por eso ahora los escribe el pipeline (§C7).
+Por eso ahora los escribe el pipeline (§C8).
 
-### E3 · El mart diario cambiaba según la zona horaria de la máquina
-
-Corriendo el mismo notebook sobre los mismos datos, el mart de Q1 daba **11.050 filas en Colab y 12.157 en una laptop**. Bronze y Silver coincidían exactamente (43.200 y 40.956), así que la diferencia estaba en el `groupBy` diario.
-
-La causa es `usage_date = to_date(event_ts)`. Los eventos vienen con timestamp ISO-8601 en UTC (`2025-07-03T00:02:00Z`), pero `to_date` convierte usando la **zona horaria de la sesión de Spark**, que por defecto es la del sistema operativo. En UTC−3, todo evento entre las 00:00 y las 03:00 UTC cae en el día anterior:
-
-| TZ de sesión | grupos (org, servicio, fecha) | fechas distintas |
-|---|---|---|
-| UTC | 11.050 | 60 |
-| America/Argentina/Buenos_Aires | 12.157 | 61 |
-
-El dataset abarca del 2025-07-03 al 2025-08-31, o sea **60 días exactos**. Las 61 fechas del segundo caso incluyen un `2025-07-02` que no existe en el origen: es la señal de que la conversión estaba corrida.
-
-Lo arreglamos fijando `spark.sql.session.timeZone=UTC` en la creación de la sesión. El dato es UTC, la agregación diaria tiene que ser en UTC, y así el resultado no depende de dónde se ejecute el notebook.
-
-Lo que aprendimos: un pipeline que da distinto en dos máquinas no está mal en una de las dos, está **mal definido**. La configuración de la sesión es parte de la lógica, no del entorno.
-
-### E4 · Casi limpiamos datos que estaban bien
+### E3 · Casi limpiamos datos que estaban bien
 Dos veces estuvimos por marcar como "sucio" algo legítimo.
 
 - **CSAT.** La distribución (0:11, 1:45, 2:127, 3:242, 4:197, 5:95, 6:28, 7:1) parecía una escala 1–5 con ruido en 0, 6 y 7. Ajustándola contra una normal redondeada (μ=3,30, σ=1,26) los esperados dan 8,8 / 47,2 / 138,7 / 224,1 / 199,0 / 97,1 / 26,0 / 3,8, y pega en **todo** el rango, colas incluidas. Es una gaussiana sobre 0–7, no una escala recortada. Una regla de rango habría mandado 40 filas legítimas a quarantine.

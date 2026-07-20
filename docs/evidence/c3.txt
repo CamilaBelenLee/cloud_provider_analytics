@@ -1,39 +1,39 @@
 ==================================================================
-  CRITERIO 3 · Marts en Gold
+  CRITERIO 3 · Marts en Gold y filas cargadas en Cassandra
 ==================================================================
-
-  mart                             filas
-  org_daily_usage_by_service       12108
-  tickets_by_org_date                944
-  revenue_by_org_month               240
-  genai_tokens_by_org_date          1235
-  cost_anomaly_mart                   89
+  mart                              Gold  Cassandra
+  org_daily_usage_by_service       11050      11050   OK
+  tickets_by_org_date                944        944   OK
+  revenue_by_org_month               240        240   OK
+  genai_tokens_by_org_date          1131       1131   OK
+  cost_anomaly_mart                   89         89   OK
+  services_by_org (índice)             -        262
 
   Top costo diario:
 +------------+-------+--------------+--------+---------+----------------+------------+---------+------------------+----------+
 |org_id      |service|daily_cost_usd|requests|cpu_hours|storage_gb_hours|genai_tokens|carbon_kg|anomaly_methods   |usage_date|
 +------------+-------+--------------+--------+---------+----------------+------------+---------+------------------+----------+
-|org_rixa11dp|genai  |368.51        |625.0   |0.0473   |0.0             |6284        |0.125009 |[zscore, mad, p99]|2025-08-24|
+|org_rixa11dp|genai  |340.53        |390.0   |0.0473   |8.3086          |5646        |0.079671 |[zscore, mad, p99]|2025-08-24|
 |org_c11ertj5|genai  |334.68        |237.0   |0.0      |12.9349         |0           |0.0      |[zscore, mad, p99]|2025-07-11|
-|org_tvhhpbmy|genai  |329.45        |339.0   |1.3851   |0.0             |0           |0.0      |[zscore, mad, p99]|2025-07-04|
+|org_tvhhpbmy|genai  |313.42        |210.0   |1.3851   |0.0             |0           |0.0      |[zscore, mad, p99]|2025-07-04|
 |org_x7eedtjv|compute|311.26        |249.0   |1.8107   |0.0             |0           |0.0      |[zscore, mad, p99]|2025-07-09|
-|org_5935a0l7|compute|270.95        |267.0   |1.1745   |0.2355          |0           |0.0      |[zscore, mad, p99]|2025-07-09|
+|org_5935a0l7|compute|271.64        |267.0   |1.1745   |7.2181          |0           |0.0      |[zscore, mad, p99]|2025-07-09|
 +------------+-------+--------------+--------+---------+----------------+------------+---------+------------------+----------+
 only showing top 5 rows
 
-  Tickets (con la colección severities):
+  Tickets (colección severities):
 +------------+-----------+-------------+----------------+----------------+--------+---------------+----------------------------------+
 |org_id      |ticket_date|total_tickets|critical_tickets|tickets_abiertos|avg_csat|sla_breach_rate|severities                        |
 +------------+-----------+-------------+----------------+----------------+--------+---------------+----------------------------------+
-|org_wm31yiha|2025-08-10 |3            |0               |2               |2.0     |0.3333         |{medium -> 1, high -> 1, low -> 1}|
-|org_zbikcidk|2025-05-19 |2            |0               |1               |4.0     |0.0            |{medium -> 1, low -> 1}           |
-|org_wm31yiha|2025-07-25 |2            |0               |0               |4.0     |0.0            |{high -> 1, low -> 1}             |
-|org_1swjckjl|2025-06-10 |2            |0               |1               |3.5     |0.0            |{low -> 1, medium -> 1}           |
-|org_teiyzcot|2025-07-07 |2            |1               |1               |2.0     |0.0            |{critical -> 1, low -> 1}         |
+|org_wm31yiha|2025-08-10 |3            |0               |2               |2.0     |0.3333         |{high -> 1, low -> 1, medium -> 1}|
+|org_zhwjr64d|2025-06-12 |2            |0               |0               |2.0     |0.5            |{medium -> 1, low -> 1}           |
+|org_xaji0y6d|2025-07-02 |2            |0               |1               |4.0     |0.5            |{medium -> 1, high -> 1}          |
+|org_wm31yiha|2025-07-03 |2            |0               |1               |NULL    |0.0            |{low -> 2}                        |
+|org_cwi64ciy|2025-08-16 |2            |0               |1               |3.0     |0.0            |{medium -> 2}                     |
 +------------+-----------+-------------+----------------+----------------+--------+---------------+----------------------------------+
 only showing top 5 rows
 
-  Revenue (con la colección currencies):
+  Revenue (colección currencies):
 +------------+----------+------------+-----------+---------+---------------+----------+-------------+
 |org_id      |month     |subtotal_usd|credits_usd|taxes_usd|net_revenue_usd|currencies|notas_credito|
 +------------+----------+------------+-----------+---------+---------------+----------+-------------+
@@ -43,29 +43,5 @@ only showing top 5 rows
 |org_5lxo6qji|2025-08-01|1982.47     |64.09      |416.32   |2334.7         |[EUR]     |0            |
 |org_c11ertj5|2025-06-01|1900.91     |10.96      |399.18   |2289.13        |[EUR]     |0            |
 +------------+----------+------------+-----------+---------+---------------+----------+-------------+
-only showing top 5 rows
-
-  GenAI:
-+------------+----------+------------+------------------+
-|org_id      |usage_date|total_tokens|estimated_cost_usd|
-+------------+----------+------------+------------------+
-|org_pbhsahxt|2025-08-07|9231        |68.6983           |
-|org_pbhsahxt|2025-08-25|8926        |93.3547           |
-|org_pbhsahxt|2025-08-21|8742        |96.556            |
-|org_h2m5zja8|2025-08-23|8733        |94.7709           |
-|org_pbhsahxt|2025-07-19|8377        |43.0579           |
-+------------+----------+------------+------------------+
-only showing top 5 rows
-
-  Anomalías:
-+------------+----------+-------+----------------+-----------------+-------------+------------------+
-|org_id      |usage_date|service|eventos_anomalos|costo_anomalo_usd|costo_max_usd|anomaly_methods   |
-+------------+----------+-------+----------------+-----------------+-------------+------------------+
-|org_c11ertj5|2025-07-11|genai  |1               |317.43           |317.43       |[zscore, mad, p99]|
-|org_rixa11dp|2025-08-24|genai  |1               |307.06           |307.06       |[zscore, mad, p99]|
-|org_x7eedtjv|2025-07-09|compute|1               |302.35           |302.35       |[zscore, mad, p99]|
-|org_tvhhpbmy|2025-07-04|genai  |1               |300.4            |300.4        |[zscore, mad, p99]|
-|org_5935a0l7|2025-07-09|compute|1               |261.33           |261.33       |[zscore, mad, p99]|
-+------------+----------+-------+----------------+-----------------+-------------+------------------+
 only showing top 5 rows
 

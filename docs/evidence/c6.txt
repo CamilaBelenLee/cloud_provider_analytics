@@ -1,13 +1,13 @@
 ==================================================================
-  PENDIENTE · regenerar contra AstraDB · idempotencia sobre AstraDB
+  CRITERIO 9 · Reprocesar no duplica (idempotencia)
 ==================================================================
+  tabla                            antes  después
+  org_daily_usage_by_service       11050    11050   OK
+  tickets_by_org_date                944      944   OK
+  revenue_by_org_month               240      240   OK
+  genai_tokens_by_org_date          1131     1131   OK
+  cost_anomaly_mart                   89       89   OK
+  services_by_org                    262      262   OK
 
-  Este archivo tenía la salida de una corrida vieja, con números que ya no cierran
-  (Gold 11050 cuando Bronze/Silver de esa misma corrida dan 12108). Lo vaciamos en vez
-  de dejar cifras que se contradicen con c1/c2/c3.
-
-  Se regenera corriendo el notebook completo con credenciales de AstraDB:
-  la celda "Reporte de evidencia" imprime los criterios 1 a 9 (incluidas Q1..Q5 y la
-  idempotencia sobre las 6 tablas) y esa salida se pega acá.
-
-  Lo verificado sin AstraDB (todo el lado Spark) está en c1, c2, c3, c7, fx y watermark.
+  Idempotente: True
+  El INSERT de Cassandra es UPSERT por primary key: re-cargar pisa, no agrega.
